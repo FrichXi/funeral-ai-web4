@@ -53,7 +53,7 @@ export function ArticleList({ articles }: ArticleListProps) {
       {/* Article grid */}
       {filtered.length === 0 ? (
         <div className="py-12 text-center">
-          <p className="retro text-sm text-muted-foreground">
+          <p className="retro text-xs text-muted-foreground">
             没有找到匹配的文章
           </p>
         </div>

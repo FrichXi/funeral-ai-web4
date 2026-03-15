@@ -1,4 +1,4 @@
-import type { RelationType } from './types';
+import type { RelationType, NodeType } from './types';
 
 // ── Brand colors ──
 export const BRAND = {
@@ -9,18 +9,32 @@ export const BRAND = {
   pinkDark: '#d97090',
 } as const;
 
-// ── Node type colors ──
-export const NODE_COLORS: Record<string, string> = {
-  company: '#7351cf',   // brand purple
-  product: '#10b981',   // emerald
-  person: '#f59e0b',    // amber
+// ── Node type registry (single source of truth) ──
+export const NODE_TYPE_REGISTRY: Record<NodeType, {
+  color: string;
+  label: string;
+  badgeClass: string;
+}> = {
+  company:  { color: '#7351cf', label: '公司',     badgeClass: 'bg-[#7351cf] border-[#7351cf] text-white' },
+  product:  { color: '#10b981', label: '产品',     badgeClass: 'bg-[#10b981] border-[#10b981] text-white' },
+  person:   { color: '#f59e0b', label: '人物',     badgeClass: 'bg-[#f59e0b] border-[#f59e0b] text-white' },
+  vc_firm:  { color: '#2dd4bf', label: '投资机构', badgeClass: 'bg-[#2dd4bf] border-[#2dd4bf] text-white' },
 };
 
-export const NODE_TYPE_LABELS: Record<string, string> = {
-  company: '公司',
-  product: '产品',
-  person: '人物',
-};
+// ── Derived constants (backward compatible) ──
+export const NODE_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(NODE_TYPE_REGISTRY).map(([k, v]) => [k, v.color])
+);
+
+export const NODE_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(NODE_TYPE_REGISTRY).map(([k, v]) => [k, v.label])
+);
+
+export const NODE_BADGE_CLASSES: Record<string, string> = Object.fromEntries(
+  Object.entries(NODE_TYPE_REGISTRY).map(([k, v]) => [k, v.badgeClass])
+);
+
+export const ALL_NODE_TYPES = Object.keys(NODE_TYPE_REGISTRY) as NodeType[];
 
 // ── Relation categories & colors ──
 

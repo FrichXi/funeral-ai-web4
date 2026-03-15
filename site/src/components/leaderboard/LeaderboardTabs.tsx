@@ -1,12 +1,7 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@/components/ui/8bit/tabs';
 import {
   Table,
   TableBody,
@@ -16,8 +11,9 @@ import {
   TableRow,
 } from '@/components/ui/8bit/table';
 import { Badge } from '@/components/ui/8bit/badge';
-import { LEADERBOARD_SEGMENTS, NODE_TYPE_LABELS } from '@/lib/constants';
-import type { LeaderboardData, LeaderboardEntry } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { LEADERBOARD_SEGMENTS, NODE_TYPE_LABELS, NODE_BADGE_CLASSES } from '@/lib/constants';
+import type { LeaderboardData, LeaderboardEntry, LeaderboardSegment } from '@/lib/types';
 
 interface LeaderboardTabsProps {
   data: LeaderboardData;
@@ -59,15 +55,9 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-const TYPE_BADGE_CLASSES: Record<string, string> = {
-  company: 'bg-[#7351cf] border-[#7351cf] text-white',
-  product: 'bg-[#10b981] border-[#10b981] text-white',
-  person: 'bg-[#f59e0b] border-[#f59e0b] text-white',
-};
-
 function TypeBadge({ type }: { type: string }) {
   const label = NODE_TYPE_LABELS[type] ?? type;
-  const badgeClasses = TYPE_BADGE_CLASSES[type] ?? 'bg-[#94a3b8] border-[#94a3b8] text-white';
+  const badgeClasses = NODE_BADGE_CLASSES[type] ?? 'bg-[#94a3b8] border-[#94a3b8] text-white';
 
   return (
     <Badge className={`text-[9px] px-1.5 py-0.5 ${badgeClasses}`}>
@@ -168,21 +158,30 @@ function SegmentTable({ entries }: { entries: LeaderboardEntry[] }) {
 }
 
 export function LeaderboardTabs({ data }: LeaderboardTabsProps) {
-  return (
-    <Tabs defaultValue="products">
-      <TabsList className="mb-6 flex-wrap">
-        {LEADERBOARD_SEGMENTS.map((seg) => (
-          <TabsTrigger key={seg.key} value={seg.key} className="text-xs px-4 py-2">
-            {seg.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+  const [activeTab, setActiveTab] = useState<LeaderboardSegment>('products');
 
-      {LEADERBOARD_SEGMENTS.map((seg) => (
-        <TabsContent key={seg.key} value={seg.key}>
-          <SegmentTable entries={data.segments[seg.key]} />
-        </TabsContent>
-      ))}
-    </Tabs>
+  return (
+    <section>
+      {/* Tab navigation — matches article page h1 style */}
+      <div className="mb-8 flex flex-wrap gap-x-6 gap-y-2">
+        {LEADERBOARD_SEGMENTS.map((seg) => (
+          <button
+            key={seg.key}
+            onClick={() => setActiveTab(seg.key)}
+            className={cn(
+              "retro text-[24px] transition-colors",
+              activeTab === seg.key
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {seg.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Active tab table */}
+      <SegmentTable entries={data.segments[activeTab]} />
+    </section>
   );
 }

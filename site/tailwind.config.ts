@@ -49,9 +49,9 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        sans: ['"Fusion Pixel"', '"Press Start 2P"', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'monospace'],
-        retro: ['"Press Start 2P"', 'system-ui', 'sans-serif'],
+        retro: ['"Fusion Pixel"', '"Press Start 2P"', 'system-ui', 'sans-serif'],
       },
     },
   },

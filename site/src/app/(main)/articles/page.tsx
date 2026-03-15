@@ -12,7 +12,7 @@ export default function ArticlesPage() {
   return (
     <section>
       <div className="mb-8">
-        <h1 className="retro text-lg text-primary mb-2">文章</h1>
+        <h1 className="retro text-[24px] text-primary mb-2">文章</h1>
         <p className="text-sm text-muted-foreground">
           共收录 {index.count} 篇来自「葬AI」的评论文章，涵盖 AI 行业公司、产品与人物分析。
         </p>

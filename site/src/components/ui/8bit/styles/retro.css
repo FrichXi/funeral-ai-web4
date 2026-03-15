@@ -1,13 +1,17 @@
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+@font-face {
+  font-family: "Fusion Pixel";
+  src: url("/fonts/fusion-pixel-12px-proportional.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 .retro {
-  font-family:
-    "Press Start 2P",
-    system-ui,
-    -apple-system,
-    sans-serif;
-  line-height: 1.5;
+  font-family: "Fusion Pixel", "Press Start 2P", system-ui, -apple-system, sans-serif;
+  line-height: 1.8;
   letter-spacing: 0.5px;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
 }
 
 .pixelated {

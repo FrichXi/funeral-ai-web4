@@ -1,8 +1,14 @@
+@font-face {
+  font-family: "Fusion Pixel";
+  src: url("/fonts/fusion-pixel-12px-proportional.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
 @layer utilities {
   .text-balance {
@@ -40,17 +46,36 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Fusion Pixel", "Press Start 2P", system-ui, sans-serif;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    line-height: 1.8;
   }
 }
 
-/* 8bitcn retro font */
-.retro {
-  font-family: "Press Start 2P", system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-  letter-spacing: 0.5px;
+.article-prose {
+  font-family: var(--font-mono), 'Menlo', 'Consolas', monospace;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  line-height: 1.75;
 }
 
-.pixelated {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+.ai-context {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

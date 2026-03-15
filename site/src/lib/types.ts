@@ -1,9 +1,18 @@
 // ── Graph types ──
 
+export type NodeType = 'company' | 'person' | 'product' | 'vc_firm';
+
+export interface SourceArticle {
+  article_id: string;
+  title: string;
+  permalink: string;
+  mention_count: number;
+}
+
 export interface GraphNode {
   id: string;
   name: string;
-  type: 'company' | 'person' | 'product';
+  type: NodeType;
   description: string;
   mention_count: number;
   article_count: number;
@@ -11,13 +20,14 @@ export interface GraphNode {
   tags: string[];
   references: string[];
   source_article_count: number;
-  source_articles: string[];
+  source_articles: SourceArticle[];
   degree: number;
   displayName?: string;
   visualMode?: string;
   asset?: NodeAsset;
   featured?: boolean;
   sizeBoost?: number;
+  composite_weight?: number;
   leaderboardSegments?: string[];
   hiddenFromLeaderboards?: boolean;
 }
@@ -108,7 +118,7 @@ export interface Article extends ArticleSummary {
 export interface ArticleEntity {
   id: string;
   name: string;
-  type: 'company' | 'person' | 'product';
+  type: NodeType;
   description: string;
   mention_count: number;
   aliases: string[];

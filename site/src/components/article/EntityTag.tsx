@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '@/lib/constants';
+import type { NodeType } from '@/lib/types';
 
 interface EntityTagProps {
   id: string;
   name: string;
-  type: 'company' | 'person' | 'product';
+  type: NodeType;
   className?: string;
 }
 

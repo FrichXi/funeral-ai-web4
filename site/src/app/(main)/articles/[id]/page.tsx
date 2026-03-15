@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { getAllArticleIds, getArticle } from '@/lib/data';
 import { ArticleBody } from '@/components/article/ArticleBody';
 import { EntityTag } from '@/components/article/EntityTag';
@@ -11,7 +12,12 @@ export function generateStaticParams() {
 }
 
 export default function ArticleDetailPage({ params }: { params: { id: string } }) {
-  const article = getArticle(params.id);
+  let article;
+  try {
+    article = getArticle(params.id);
+  } catch {
+    notFound();
+  }
 
   return (
     <article>
@@ -27,7 +33,7 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
 
       {/* Header */}
       <header className="mb-8">
-        <h1 className="retro text-lg text-primary mb-3 leading-relaxed">
+        <h1 className="retro text-[24px] text-primary mb-3 leading-relaxed">
           {article.title}
         </h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
