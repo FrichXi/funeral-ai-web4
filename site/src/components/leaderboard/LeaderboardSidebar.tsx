@@ -64,15 +64,15 @@ export function LeaderboardSidebar({
     <div className="flex h-full flex-col">
       <Tabs defaultValue="products" className="flex h-full flex-col">
         {/* Tabs at very top */}
-        <TabsList className="shrink-0 border-b border-border flex flex-nowrap px-0.5 py-1.5 overflow-x-auto">
+        <TabsList className="shrink-0 border-b border-border flex flex-nowrap w-full px-0.5 py-1.5">
           {LEADERBOARD_SEGMENTS.map((seg) => (
             <TabsTrigger
               key={seg.key}
               value={seg.key}
-              className="text-[11px] px-1 py-1 whitespace-nowrap flex-1 min-w-0"
+              className="px-1 py-1 min-w-0"
             >
               {seg.label}
-              <span className="ml-0.5 text-[9px] text-muted-foreground">
+              <span className="ml-0.5 text-[10px] text-muted-foreground">
                 {data.segments[seg.key].length}
               </span>
             </TabsTrigger>

@@ -15,8 +15,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import shutil
 import warnings
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -31,15 +34,26 @@ MANIFEST_FILE = STATE_DIR / "articles_manifest.json"
 CANONICAL_FULL_GRAPH_FILE = GRAPH_DIR / "canonical_full.json"
 CANONICAL_GRAPH_FILE = GRAPH_DIR / "canonical.json"
 PIPELINE_TOML = PROJECT_ROOT / "pipeline.toml"
+PIPELINE_LOCAL_TOML = PROJECT_ROOT / "pipeline.local.toml"
 
 # ── Article filename validation ──
 ARTICLE_FILENAME_RE = re.compile(r"^\d{3}_\d{4}-\d{2}-\d{2}_[^_]+_.+\.md$")
 
 
-def _load_pipeline_config() -> dict:
+def _deep_merge_dicts(base: dict, override: dict) -> dict:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _load_toml_file(path: Path) -> dict:
     """Load pipeline.toml if it exists, return empty dict otherwise.
     Uses tomllib (Python 3.11+) or falls back to a simple TOML parser."""
-    if not PIPELINE_TOML.exists():
+    if not path.exists():
         return {}
     try:
         import tomllib
@@ -50,7 +64,7 @@ def _load_pipeline_config() -> dict:
             # Minimal fallback: parse key = "value" lines
             config: dict = {}
             section = ""
-            for line in PIPELINE_TOML.read_text(encoding="utf-8").splitlines():
+            for line in path.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
@@ -71,11 +85,22 @@ def _load_pipeline_config() -> dict:
                     else:
                         config[key] = val
             return config
-    with open(PIPELINE_TOML, "rb") as f:
+    with open(path, "rb") as f:
         return tomllib.load(f)
 
 
+def _load_pipeline_config() -> dict:
+    config = _load_toml_file(PIPELINE_TOML)
+    if PIPELINE_LOCAL_TOML.exists():
+        config = _deep_merge_dicts(config, _load_toml_file(PIPELINE_LOCAL_TOML))
+    return config
+
+
 _PIPELINE_CONFIG = _load_pipeline_config()
+ARTICLE_SOURCE_DIR = Path(
+    os.environ.get("ZANGAI_ARTICLES_SOURCE_DIR")
+    or _PIPELINE_CONFIG.get("articles", {}).get("source_dir", str(ARTICLES_DIR))
+).expanduser()
 
 EXTRACTOR_NAME = "gemini"
 MODEL_NAME = _PIPELINE_CONFIG.get("pipeline", {}).get("model", "gemini-3.1-pro-preview")
@@ -95,6 +120,42 @@ def sha256_text(text: str) -> str:
 def ensure_pipeline_dirs() -> None:
     for path in (DATA_DIR, RAW_DIR, EXTRACTED_DIR, GRAPH_DIR, STATE_DIR):
         path.mkdir(parents=True, exist_ok=True)
+
+
+def ensure_article_mirror() -> Path:
+    source_dir = ARTICLE_SOURCE_DIR
+    if not source_dir.exists():
+        raise FileNotFoundError(f"Configured article source dir does not exist: {source_dir}")
+    if not source_dir.is_dir():
+        raise NotADirectoryError(f"Configured article source dir is not a directory: {source_dir}")
+
+    ARTICLES_DIR.mkdir(parents=True, exist_ok=True)
+
+    if source_dir.resolve() == ARTICLES_DIR.resolve():
+        return ARTICLES_DIR
+
+    source_files = {
+        path.name: path
+        for path in source_dir.glob("*.md")
+        if path.is_file()
+    }
+    mirrored_files = {
+        path.name: path
+        for path in ARTICLES_DIR.glob("*.md")
+        if path.is_file()
+    }
+
+    for filename, mirrored_path in mirrored_files.items():
+        if filename not in source_files:
+            mirrored_path.unlink()
+
+    for filename, source_path in source_files.items():
+        destination = ARTICLES_DIR / filename
+        if destination.exists() and source_path.read_bytes() == destination.read_bytes():
+            continue
+        shutil.copy2(source_path, destination)
+
+    return ARTICLES_DIR
 
 
 def load_json_file(path: Path, default):
@@ -159,12 +220,16 @@ def article_record_from_path(path: Path) -> dict:
     raw_text = path.read_text(encoding="utf-8")
     body_text = extract_article_body(raw_text)
     title = parts[3] if len(parts) > 3 else path.stem
+    try:
+        logical_path = str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        logical_path = str(Path("articles") / path.name)
     return {
         "id": parts[0] if len(parts) > 0 else path.stem,
         "date": parts[1] if len(parts) > 1 else "",
         "author": parts[2] if len(parts) > 2 else "",
         "title": title,
-        "path": str(path.relative_to(PROJECT_ROOT)),
+        "path": logical_path,
         "text": body_text,
         "raw_text": raw_text,
         "prompt_text": f"标题：{title}\n\n正文：\n{body_text}",
@@ -173,17 +238,31 @@ def article_record_from_path(path: Path) -> dict:
 
 
 def load_articles(limit: int | None = None, article_ids: list[str] | None = None) -> list[dict]:
+    ensure_article_mirror()
     selected = set(article_ids or [])
     articles = []
+    duplicate_ids: dict[str, list[str]] = defaultdict(list)
     for path in sorted(ARTICLES_DIR.glob("*.md")):
         if path.name.startswith("00_"):
             continue
         record = article_record_from_path(path)
-        if selected and record["id"] not in selected:
-            continue
+        duplicate_ids[record["id"]].append(path.name)
         articles.append(record)
-        if limit and len(articles) >= limit:
-            break
+    conflicts = {
+        article_id: paths
+        for article_id, paths in duplicate_ids.items()
+        if len(paths) > 1
+    }
+    if conflicts:
+        details = "; ".join(
+            f"{article_id}: {', '.join(paths)}"
+            for article_id, paths in sorted(conflicts.items())
+        )
+        raise ValueError(f"Duplicate article IDs detected in source corpus: {details}")
+    if selected:
+        articles = [record for record in articles if record["id"] in selected]
+    if limit:
+        articles = articles[:limit]
     return articles
 
 

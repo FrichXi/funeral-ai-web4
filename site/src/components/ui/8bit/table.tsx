@@ -2,8 +2,6 @@
 
 import type * as React from "react";
 
-import { type VariantProps, cva } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 import {
@@ -16,40 +14,38 @@ import {
   TableHeader as ShadcnTableHeader,
   TableRow as ShadcnTableRow,
 } from "@/components/ui/table";
+import {
+  tableContainerVariants,
+  tableVariants,
+  type TableAlign,
+  type TableFont,
+  type TableLayout,
+  type TableVariant,
+} from "@/components/ui/8bit/table-contracts";
 
 import "@/components/ui/8bit/styles/retro.css";
 
-export const tableVariants = cva("", {
-  variants: {
-    variant: {
-      default: "p-4 py-2.5 border-y-6 border-foreground dark:border-ring",
-      borderless: "",
-    },
-    font: {
-      normal: "",
-      retro: "retro",
-    },
-  },
-  defaultVariants: {
-    font: "retro",
-    variant: "default",
-  },
-});
-
 function Table({
   className,
+  containerClassName,
   font,
   variant,
+  layout,
+  align,
   ...props
 }: React.ComponentProps<"table"> & {
-  font?: VariantProps<typeof tableVariants>["font"];
-  variant?: VariantProps<typeof tableVariants>["variant"];
+  containerClassName?: string;
+  font?: TableFont;
+  variant?: TableVariant;
+  layout?: TableLayout;
+  align?: TableAlign;
 }) {
   return (
     <div
       className={cn(
-        "relative flex justify-center w-fit",
-        tableVariants({ font, variant })
+        tableContainerVariants({ layout, align }),
+        tableVariants({ font, variant }),
+        containerClassName
       )}
     >
       <ShadcnTable className={className} {...props} />

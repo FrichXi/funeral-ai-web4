@@ -24,7 +24,7 @@ export function GraphClient({ leaderboard, stats }: GraphClientProps) {
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
   return (
-    <div className="flex h-[calc(100vh-2.5rem)]">
+    <div className="flex h-[calc(100vh-var(--navbar-height))]">
       <div className="flex-1 min-w-0 relative">
         <Suspense
           fallback={
@@ -36,7 +36,7 @@ export function GraphClient({ leaderboard, stats }: GraphClientProps) {
           <GraphCanvas focusNodeId={focusNodeId} />
         </Suspense>
       </div>
-      <aside className="w-[360px] shrink-0 border-l border-border hidden lg:block overflow-y-auto bg-background">
+      <aside className="w-[300px] shrink-0 border-l border-border hidden lg:block overflow-y-auto bg-background">
         <LeaderboardSidebar
           data={leaderboard}
           stats={stats}

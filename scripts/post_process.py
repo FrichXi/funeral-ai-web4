@@ -27,10 +27,12 @@ from overrides import (
     ALIAS_ADDITIONS,
     ALIAS_REMOVALS,
     BIDIRECTIONAL_RELATION_TYPES,
+    DESCRIPTION_OVERRIDES,
     EDGE_FIX_ADDITIONS,
     EDGE_TYPE_FIXES,
     EXTRA_ALIAS_ADDITIONS,
     MISSING_EDGES,
+    MISSING_NODES,
     NODE_MERGES,
     NODE_RENAMES,
     TYPE_CORRECTIONS,
@@ -211,6 +213,46 @@ def step0_fix_duplicate_ids(data: dict) -> int:
     print(f"  Merged {merged_count} duplicate-ID pairs, "
           f"removed {dup} dup edges")
     return merged_count
+
+
+# ── Step 0b: Add Missing Nodes ────────────────────────────────────────
+
+def step0b_add_missing_nodes(data: dict) -> int:
+    """Add nodes declared in MISSING_NODES that don't already exist."""
+    print("\n" + "=" * 70)
+    print("STEP 0b: Add Missing Nodes")
+    print("=" * 70)
+
+    existing_ids = {n["id"] for n in data["nodes"]}
+    added = 0
+    for entry in MISSING_NODES:
+        nid = entry["id"]
+        if nid in existing_ids:
+            print(f"    skip '{nid}' (already exists)")
+            continue
+        node = {
+            "id": nid,
+            "name": entry["name"],
+            "displayName": entry["name"],
+            "type": entry.get("type", "company"),
+            "description": entry.get("description", ""),
+            "aliases": entry.get("aliases", []),
+            "tags": [],
+            "mention_count": 0,
+            "article_count": 0,
+            "source_article_count": 0,
+            "references": 0,
+            "degree": 0,
+            "composite_weight": 0,
+            "source_articles": [],
+        }
+        data["nodes"].append(node)
+        existing_ids.add(nid)
+        print(f"    + added '{nid}' ({entry.get('type', 'company')})")
+        added += 1
+
+    print(f"  Total nodes added: {added}")
+    return added
 
 
 # ── Step 1: Node Merges ───────────────────────────────────────────────
@@ -448,6 +490,27 @@ def step3_alias_cleanup(data: dict) -> int:
     return changes
 
 
+# ── Step 3b: Description Overrides ────────────────────────────────────
+
+def step3b_description_overrides(data: dict) -> int:
+    """Override node descriptions with neutral rewording."""
+    print("\n" + "=" * 70)
+    print("STEP 3b: Description Overrides")
+    print("=" * 70)
+    nmap = node_map(data)
+    changes = 0
+    for nid, new_desc in DESCRIPTION_OVERRIDES.items():
+        actual = find_node_id(data, nid)
+        if actual and actual in nmap:
+            old_desc = nmap[actual].get("description", "")
+            if old_desc != new_desc:
+                nmap[actual]["description"] = new_desc
+                print(f"    {actual}: desc updated")
+                changes += 1
+    print(f"  Total description overrides: {changes}")
+    return changes
+
+
 # ── Step 4: Edge Type Corrections ────────────────────────────────────
 
 def step4_edge_type_corrections(data: dict) -> int:
@@ -637,9 +700,10 @@ def step7_recalculate(data: dict) -> None:
         n["references"] = n["article_count"]
 
     # 3. composite_weight
-    max_mention = max(
-        (n.get("mention_count", 0) for n in data["nodes"]), default=1
-    ) or 1
+    #    Three independent dimensions:
+    #      CW = 0.40 * norm_degree + 0.40 * norm_mentions + 0.20 * norm_articles
+    #    effective_mc = min(mention_count, 25 * article_count) caps per-article mentions.
+
     max_degree = max(
         (n.get("degree", 0) for n in data["nodes"]), default=1
     ) or 1
@@ -647,14 +711,23 @@ def step7_recalculate(data: dict) -> None:
         (n.get("article_count", 0) for n in data["nodes"]), default=1
     ) or 1
 
+    # Cap effective mentions at 25 per article to suppress interview outliers
+    effective_mentions = []
     for n in data["nodes"]:
-        nm = n.get("mention_count", 0) / max_mention
+        mc = n.get("mention_count", 0)
+        ac = max(n.get("article_count", 0), 1)
+        effective_mentions.append(min(mc, 25 * ac))
+    max_effective_mc = max(effective_mentions) if effective_mentions else 1
+    max_effective_mc = max_effective_mc or 1
+
+    for i, n in enumerate(data["nodes"]):
         nd = n.get("degree", 0) / max_degree
+        nm = effective_mentions[i] / max_effective_mc
         na = n.get("article_count", 0) / max_article
-        cw = 0.35 * nd + 0.40 * nm + 0.25 * na
+        cw = 0.40 * nd + 0.40 * nm + 0.20 * na
         n["composite_weight"] = round(cw, 4)
 
-    print(f"  max_mention={max_mention}, max_degree={max_degree}, "
+    print(f"  max_effective_mc={max_effective_mc}, max_degree={max_degree}, "
           f"max_article={max_article}")
 
     # Top 10
@@ -686,9 +759,11 @@ def main() -> None:
 
     # Apply overrides in order
     s0 = step0_fix_duplicate_ids(data)
+    s0b = step0b_add_missing_nodes(data)
     s1 = step1_node_merges(data)
     s2 = step2_type_corrections(data)
     s3 = step3_alias_cleanup(data)
+    s3b = step3b_description_overrides(data)
     s4 = step4_edge_type_corrections(data)
     s5 = step5_add_missing_edges(data)
     s6 = step6_bidirectional_completion(data)
@@ -733,13 +808,15 @@ def main() -> None:
         print(f"  OK: No duplicate node IDs.")
 
     print(f"\nBreakdown:")
-    print(f"  Step 0 (dedup IDs):      {s0} duplicate-ID pairs merged")
-    print(f"  Step 1 (merges):         {s1} nodes merged")
-    print(f"  Step 2 (type fixes):     {s2} nodes changed")
-    print(f"  Step 3 (alias cleanup):  {s3} changes")
-    print(f"  Step 4 (edge fixes):     {s4} edge changes")
-    print(f"  Step 5 (missing edges):  {s5} edges added")
-    print(f"  Step 6 (bidirectional):  {s6} reverse edges added")
+    print(f"  Step 0  (dedup IDs):      {s0} duplicate-ID pairs merged")
+    print(f"  Step 0b (missing nodes):  {s0b} nodes added")
+    print(f"  Step 1  (merges):         {s1} nodes merged")
+    print(f"  Step 2  (type fixes):     {s2} nodes changed")
+    print(f"  Step 3  (alias cleanup):  {s3} changes")
+    print(f"  Step 3b (desc overrides): {s3b} descriptions updated")
+    print(f"  Step 4  (edge fixes):     {s4} edge changes")
+    print(f"  Step 5  (missing edges):  {s5} edges added")
+    print(f"  Step 6  (bidirectional):  {s6} reverse edges added")
 
     print(f"\nOutput: {CORRECTED_PATH}")
 

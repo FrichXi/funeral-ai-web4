@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { CenteredScreen } from '@/components/layout/StatusScreen';
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background px-4">
+    <CenteredScreen>
       {/* Logo */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -20,7 +21,7 @@ export default function LandingPage() {
 
       {/* Subtitle */}
       <p className="mt-3 text-xs text-muted-foreground">
-        AI 行业知识图谱
+        数据截至第069篇「一个山东套壳AI如何上桌」(2026.03.13)
       </p>
 
       {/* Entry buttons */}
@@ -29,15 +30,15 @@ export default function LandingPage() {
           href="/graph"
           className="px-6 py-3 text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors border-2 border-primary"
         >
-          探索图谱
+          图谱
         </Link>
         <Link
           href="/articles"
           className="px-6 py-3 text-sm text-foreground border-2 border-border hover:border-primary hover:text-primary transition-colors"
         >
-          阅读文章
+          文章
         </Link>
       </div>
-    </div>
+    </CenteredScreen>
   );
 }

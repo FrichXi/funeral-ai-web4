@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { getAllArticleIds, getArticle } from '@/lib/data';
 import { ArticleBody } from '@/components/article/ArticleBody';
 import { EntityTag } from '@/components/article/EntityTag';
@@ -9,6 +10,30 @@ import type { RelationType } from '@/lib/types';
 
 export function generateStaticParams() {
   return getAllArticleIds().map((id) => ({ id }));
+}
+
+export function generateMetadata({ params }: { params: { id: string } }): Metadata {
+  try {
+    const article = getArticle(params.id);
+    const description = article.excerpt
+      ? article.excerpt.slice(0, 160)
+      : `${article.author} - ${article.title}`;
+    return {
+      title: `${article.title} - 葬AI Web4`,
+      description,
+      openGraph: {
+        title: article.title,
+        description,
+        type: 'article',
+        publishedTime: article.date,
+        authors: [article.author],
+      },
+    };
+  } catch {
+    return {
+      title: '文章未找到 - 葬AI Web4',
+    };
+  }
 }
 
 export default function ArticleDetailPage({ params }: { params: { id: string } }) {

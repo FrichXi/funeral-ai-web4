@@ -27,3 +27,18 @@ site/.vercel/
 
 # OS
 .DS_Store
+
+# Brand binary assets
+葬ai物料/
+
+# Prebuild generated copy
+site/public/data/
+
+# Claude Code local config
+.claude/
+
+# Logs
+*.log
+
+# Local article source override
+pipeline.local.toml

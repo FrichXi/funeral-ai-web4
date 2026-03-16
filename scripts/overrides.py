@@ -5,6 +5,9 @@ All domain knowledge that Gemini cannot extract goes here.
 This is a PURE DATA file -- no logic, just declarations.
 """
 
+# ── Excluded articles (skipped during aggregation & article index) ──
+EXCLUDED_ARTICLES = {"011"}  # 011: B站发起视频播客，与AI无关
+
 # ── Node merges (post-extraction, for cases MERGE_MAP can't handle) ──
 # Format: {"keep": canonical_id, "remove": [alias_ids],
 #          "new_name": optional, "add_aliases": optional, "new_type": optional}
@@ -12,7 +15,7 @@ NODE_MERGES = [
     # -- 1a. New merges (4 groups) --
     {"keep": "looki", "remove": ["looki公司"]},
     {"keep": "manus", "remove": ["manus-产品"]},
-    {"keep": "锴杰", "remove": ["陈总"]},
+    {"keep": "锴杰", "remove": ["陈总"], "new_name": "陈锴杰", "add_aliases": ["锴杰", "陈总"]},
     {"keep": "openclaw", "remove": ["clawdbot"]},
 
     # -- 1b. Person merges (3 groups) --
@@ -57,6 +60,19 @@ NODE_MERGES = [
     {"keep": "妙鸭相机", "remove": ["妙鸭"], "add_aliases": ["妙鸭"]},
     {"keep": "锴杰", "remove": ["马卡龙创始人"], "add_aliases": ["马卡龙创始人"]},
     {"keep": "川普", "remove": ["特朗普"], "add_aliases": ["特朗普", "Trump"]},
+
+    # -- 1f. New merges (v4) --
+    {"keep": "蚂蚁集团", "remove": ["支付宝"], "add_aliases": ["支付宝"]},
+
+    # -- 1g. New merges (v5) --
+    {"keep": "idg", "remove": ["idg-90后基金"], "add_aliases": ["IDG 90后基金"]},
+    # 钉钉/阿里云 are separate business units, keep as independent nodes in graph
+    {"keep": "葬ai", "remove": ["葬爱咸鱼科技有限公司"], "add_aliases": ["葬爱咸鱼科技有限公司"]},
+
+    # -- 1h. New merges (v6) --
+    {"keep": "蚂蚁集团", "remove": ["蚂蚁"], "add_aliases": ["蚂蚁", "蚂蚁金服"]},
+    {"keep": "蚂蚁集团", "remove": ["蚂蚁集团投资部"], "add_aliases": ["蚂蚁集团投资部"]},
+    {"keep": "vivix", "remove": ["vivix-ai"], "add_aliases": ["Vivix AI"]},
 ]
 
 # ── Type corrections ──
@@ -81,7 +97,6 @@ TYPE_CORRECTIONS = {
     "五源": "vc_firm",
     "红杉资本": "vc_firm",
     "金沙江": "vc_firm",
-    "idg-90后基金": "vc_firm",
     "benchmark": "vc_firm",
 }
 
@@ -203,10 +218,79 @@ MISSING_EDGES = [
     # -- 5.4 Other missing edges from articles --
     ("阿里巴巴", "杨植麟", "invests_in", "阿里巴巴投资杨植麟/月之暗面"),
     ("五源", "雷军", "invests_in", "五源投资雷军"),
-    ("idg-90后基金", "郭列", "invests_in", "IDG 90后基金投资郭列"),
+    ("idg", "郭列", "invests_in", "IDG投资郭列"),
     ("特朗普", "马斯克", "collaborates_with", "特朗普与马斯克合作"),
     ("刘芹", "雷军", "collaborates_with", "刘芹与雷军合作"),
     ("peak", "肖弘", "co_founded", "Peak与肖弘联合创立Manus"),
+
+    # -- 5.5 New user-specified edges (v4) --
+    ("idg", "拓竹", "invests_in", "IDG投资拓竹"),
+    ("红杉资本", "观猹", "invests_in", "红杉资本投资观猹"),
+    ("红杉资本", "小红书", "invests_in", "红杉中国投资小红书"),
+    ("idg", "vivix", "invests_in", "IDG投资Vivix"),
+    ("阿里巴巴", "阿里达摩院", "develops", "阿里巴巴旗下达摩院"),
+    ("阿里巴巴", "qoder", "develops", "阿里巴巴开发Qoder编程工具"),
+    ("openai", "codex", "develops", "OpenAI开发Codex编程工具"),
+    ("腾讯", "正版qq小冰", "develops", "腾讯旗下正版QQ小冰"),
+    ("阿里巴巴", "蚂蚁集团", "develops", "阿里巴巴旗下蚂蚁集团"),
+    ("葬爱咸鱼", "36氪", "collaborates_with", "葬爱咸鱼是36氪CEO候选人"),
+    ("蚂蚁集团", "自然选择", "invests_in", "蚂蚁集团投资自然选择"),
+    # ("蚂蚁集团", "蚂蚁集团投资部", ...) -- removed: merged into 蚂蚁集团
+    ("龚震", "闪电说", "founder_of", "龚震创办闪电说"),
+    ("龚震", "manus", "works_at", "龚震曾在Manus工作"),
+
+    # -- 5.6 Systematic review: missing develops (parent-child) --
+    ("阿里巴巴", "夸克", "develops", "阿里巴巴开发夸克搜索引擎"),
+    ("阿里巴巴", "钉钉", "develops", "阿里巴巴开发钉钉"),
+    ("阿里巴巴", "qwen-code", "develops", "阿里巴巴开发Qwen Code编程Agent"),
+    ("字节跳动", "飞书", "develops", "字节跳动开发飞书"),
+    ("字节跳动", "豆包手机", "develops", "字节跳动开发豆包手机"),
+    ("腾讯", "元宝", "develops", "腾讯开发元宝AI"),
+    ("openai", "whisper", "develops", "OpenAI开发Whisper语音识别模型"),
+    ("谷歌", "gemini-cli", "develops", "谷歌开发Gemini CLI"),
+    ("xai", "grok", "develops", "xAI开发Grok"),
+    ("meta", "instagram", "develops", "Meta开发Instagram"),
+    ("快手", "可灵", "develops", "快手开发可灵AI视频生成"),
+    ("智谱ai", "glm-code", "develops", "智谱AI开发GLM Code编程Agent"),
+    ("叠纸", "恋与深空", "develops", "叠纸开发恋与深空"),
+
+    # -- 5.7 Systematic review: missing invests_in --
+    ("锦秋基金", "manus", "invests_in", "锦秋基金投资Manus"),
+
+    # -- 5.8 Systematic review: missing competes_with --
+    ("codex", "cursor", "competes_with", "Codex和Cursor都是AI编程工具"),
+    ("seedance", "可灵", "competes_with", "Seedance和可灵都是AI视频生成产品"),
+    ("qwen", "kimi", "competes_with", "千问和Kimi都是国内AI对话助手"),
+    ("qwen", "deepseek", "competes_with", "千问和DeepSeek都是国内AI大模型"),
+    ("豆包", "kimi", "competes_with", "豆包和Kimi都是国内AI对话助手"),
+    ("豆包", "deepseek", "competes_with", "豆包和DeepSeek都是国内AI大模型"),
+    ("plaud", "looki", "competes_with", "Plaud和Looki都是AI硬件产品"),
+    ("youmind", "notebooklm", "competes_with", "YouMind和NotebookLM都是AI知识管理产品"),
+    ("腾讯云", "火山引擎", "competes_with", "腾讯云和火山引擎都是云服务平台"),
+    ("chatpods", "来福电台", "competes_with", "ChatPods和来福电台都是AI播客产品"),
+    ("deepseek", "minimax", "competes_with", "DeepSeek和MiniMax都是国内AI大模型公司"),
+    ("deepseek", "百川智能", "competes_with", "DeepSeek和百川智能都是国内AI大模型公司"),
+    ("deepseek", "阶跃星辰", "competes_with", "DeepSeek和阶跃星辰都是国内AI大模型公司"),
+    ("deepseek", "月之暗面", "competes_with", "DeepSeek和月之暗面都是国内AI大模型公司"),
+    ("minimax", "百川智能", "competes_with", "MiniMax和百川智能都是国内AI大模型公司"),
+    ("月之暗面", "百川智能", "competes_with", "月之暗面和百川智能都是国内AI大模型公司"),
+    ("月之暗面", "minimax", "competes_with", "月之暗面和MiniMax都是国内AI大模型公司"),
+    ("月之暗面", "智谱ai", "competes_with", "月之暗面和智谱AI都是国内AI大模型公司"),
+    ("anthropic", "openai", "competes_with", "Anthropic和OpenAI都是美国顶级AI公司"),
+
+    # -- 5.9 葬AI author relationships --
+    ("葬爱咸鱼", "葬ai", "works_at", "葬爱咸鱼是葬AI的创始人和作者"),
+    ("葬爱咸鱼", "葬ai", "founder_of", "葬爱咸鱼创立葬AI"),
+    ("沐秋", "葬ai", "works_at", "沐秋是葬AI的作者"),
+    ("骡子马", "葬ai", "works_at", "骡子马是葬AI的作者"),
+    ("葬爱咸鱼", "沐秋", "collaborates_with", "葬爱咸鱼与沐秋在葬AI合作"),
+    ("葬爱咸鱼", "骡子马", "collaborates_with", "葬爱咸鱼与骡子马在葬AI合作"),
+    ("沐秋", "骡子马", "collaborates_with", "沐秋与骡子马在葬AI合作"),
+
+    # -- 5.10 Missing develops edges (orphan products → parent) --
+    ("deepseek", "deepseek-r1", "develops", "DeepSeek开发DeepSeek-R1"),
+    ("deepseek", "deepseek-v3", "develops", "DeepSeek开发DeepSeek-V3"),
+    ("商汤科技", "sensetime-日日新", "develops", "商汤科技开发日日新大模型"),
 ]
 
 # ── Alias cleanup ──
@@ -247,5 +331,41 @@ EXTRA_ALIAS_ADDITIONS = [
     ("邪恶意大利人", ["Dario Amodei", "Dario"]),
 ]
 
+# ── Missing nodes (not extracted by Gemini) ──
+# These are added before any other processing step.
+MISSING_NODES = [
+    {"id": "龚震", "name": "龚震", "type": "person",
+     "description": "闪电说创始人，曾在Manus工作"},
+    {"id": "闪电说", "name": "闪电说", "type": "product",
+     "description": "AI演讲辅助产品"},
+    {"id": "葬ai", "name": "葬AI", "type": "company",
+     "description": "中文AI行业评论自媒体"},
+]
+
+# ── Description overrides (neutral rewording) ──
+DESCRIPTION_OVERRIDES = {
+    "agnes": "Agnes AI发布的主打\"平民agent\"的AI对话与生产工具应用，产品设计引发行业争议",
+    "杨通": "开为科技及Agnes AI创始人，因产品相似度争议受到行业关注",
+}
+
 # ── Symmetric relation types (need bidirectional edges) ──
 BIDIRECTIONAL_RELATION_TYPES = ["competes_with", "compares_to"]
+
+# ── Company subsidiary consolidation (leaderboard only, NOT graph) ──
+# Parent company ID -> list of subsidiary node IDs whose stats merge into parent.
+# Graph visualization remains unchanged; only leaderboard ranking is affected.
+# Merge logic: degree=sum, mention_count=sum, article_count=union(去重).
+COMPANY_SUBSIDIARIES = {
+    "阿里巴巴": ["阿里云", "钉钉", "蚂蚁集团", "阿里达摩院"],
+    "字节跳动": ["火山引擎", "脸萌科技"],
+    "腾讯": ["腾讯-ai-lab"],
+    "谷歌": ["google-deepmind"],
+}
+
+# ── Leaderboard exclusions ──
+# Node IDs excluded from specific leaderboard categories.
+# 葬AI authors are not industry founders; their founder_of edge to 葬AI
+# is an internal relationship, not a startup founding.
+LEADERBOARD_EXCLUDE = {
+    "founders": ["葬爱咸鱼", "沐秋", "骡子马"],
+}

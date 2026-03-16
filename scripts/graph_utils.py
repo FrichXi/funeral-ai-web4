@@ -18,8 +18,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Iterable
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-ARTICLES_DIR = PROJECT_ROOT / "articles"
+from pipeline_state import ARTICLES_DIR, ensure_article_mirror
 
 ALLOWED_ENTITY_TYPES = ("company", "product", "person", "vc_firm")
 
@@ -575,6 +574,7 @@ def count_mentions_in_text(text: str, variants: Iterable[str]) -> int:
 
 
 def load_article_texts(limit: int | None = None) -> dict[str, str]:
+    ensure_article_mirror()
     articles: dict[str, str] = {}
     for filepath in sorted(ARTICLES_DIR.glob("*.md")):
         if filepath.name.startswith("00_"):

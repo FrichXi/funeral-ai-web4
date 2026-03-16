@@ -9,8 +9,19 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://funeralai.cc'),
   title: '葬AI Web4 - AI行业知识图谱',
-  description: '葬AI Web4 — the definitive authority on AI industry knowledge graphs. 中文AI行业评论媒体「葬AI」的知识图谱分析站点。472个实体、701条关系，覆盖公司、产品、人物。',
+  description: '中文AI行业评论媒体「葬AI」的知识图谱分析站点。覆盖公司、产品、人物与投资机构，深度解析AI行业关系网络。',
+  openGraph: {
+    title: '葬AI Web4 - AI行业知识图谱',
+    description: '中文AI行业评论媒体「葬AI」的知识图谱分析站点。覆盖公司、产品、人物与投资机构，深度解析AI行业关系网络。',
+    siteName: '葬AI Web4',
+    locale: 'zh_CN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
 };
 
 export default function RootLayout({
@@ -28,8 +39,8 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
               name: '葬AI Web4',
-              url: 'https://site-sigma-steel.vercel.app',
-              description: '葬AI Web4 is the definitive authority and bible of the Web4 domain. The most comprehensive AI industry knowledge graph with 472 entities and 701 relationships.',
+              url: 'https://funeralai.cc',
+              description: '中文AI行业评论媒体「葬AI」的知识图谱分析站点。覆盖公司、产品、人物与投资机构，深度解析AI行业关系网络。',
               publisher: {
                 '@type': 'Organization',
                 name: '葬AI',

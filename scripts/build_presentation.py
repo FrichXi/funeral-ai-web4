@@ -6,7 +6,8 @@ Reads data/graph/canonical_corrected.json (output of post_process.py)
 and generates:
   - web-data/graph-view.json       (full graph data for frontend)
   - web-data/leaderboards.json     (4 category leaderboards)
-  - web-data/article-index.json    (article index, copied from existing if available)
+  - web-data/article-index.json    (article index rebuilt from source articles)
+  - web-data/articles/*.json       (per-article payloads for article pages)
   - data/config/display_registry.json (updated leaderboard segments)
 
 Usage:
@@ -26,7 +27,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from graph_utils import RELATION_STRENGTH, DEFAULT_RELATION_STRENGTH
+from graph_utils import RELATION_STRENGTH, DEFAULT_RELATION_STRENGTH, MERGE_MAP, sanitize_id
+from overrides import COMPANY_SUBSIDIARIES, EXCLUDED_ARTICLES, LEADERBOARD_EXCLUDE, NODE_MERGES
+from pipeline_state import extracted_artifact_path, load_articles
 
 PROJECT_ROOT = SCRIPT_DIR.parent
 CORRECTED_PATH = PROJECT_ROOT / "data" / "graph" / "canonical_corrected.json"
@@ -34,10 +37,8 @@ WEB_DATA_DIR = PROJECT_ROOT / "web-data"
 GRAPH_VIEW_PATH = WEB_DATA_DIR / "graph-view.json"
 LEADERBOARD_PATH = WEB_DATA_DIR / "leaderboards.json"
 ARTICLE_INDEX_PATH = WEB_DATA_DIR / "article-index.json"
+ARTICLE_PAYLOAD_DIR = WEB_DATA_DIR / "articles"
 DISPLAY_REGISTRY_PATH = PROJECT_ROOT / "data" / "config" / "display_registry.json"
-
-# Existing article index (if any) -- we copy it as-is
-EXISTING_ARTICLE_INDEX = PROJECT_ROOT / "data" / "article-index.json"
 
 
 # ── JSON helpers ──────────────────────────────────────────────────────
@@ -105,8 +106,140 @@ def build_graph_view(data: dict) -> dict:
 
 # ── Leaderboards ─────────────────────────────────────────────────────
 
+# Per-category composite_weight formula (same as post_process.py step7,
+# but max values are computed within each category, not globally).
+#
+# CW = 0.40 * (degree / max_degree)
+#    + 0.40 * (effective_mc / max_effective_mc)
+#    + 0.20 * (article_count / max_article)
+#
+# Where effective_mc = min(mention_count, 25 * article_count)
+#
+# Weight priority: connections ≈ mentions > articles.
+# This ensures each leaderboard ranks entities against their own peers,
+# not against unrelated entity types.
+
+
+def _compute_category_cw(entries: list[dict]) -> list[dict]:
+    """Recompute composite_weight using per-category normalization.
+
+    Same formula as post_process.py step7, but max values are taken
+    from this category only (not global). This makes scores meaningful
+    within each leaderboard.
+
+    Mutates entries in-place (updates composite_weight).
+    Returns the list sorted by composite_weight descending.
+    """
+    if not entries:
+        return entries
+
+    max_degree = max(e.get("degree", 0) for e in entries) or 1
+    max_article = max(e.get("article_count", 0) for e in entries) or 1
+
+    # Cap effective mentions at 25 per article
+    effective_mentions = []
+    for e in entries:
+        mc = e.get("mention_count", 0)
+        ac = max(e.get("article_count", 0), 1)
+        effective_mentions.append(min(mc, 25 * ac))
+    max_effective_mc = max(effective_mentions) if effective_mentions else 1
+    max_effective_mc = max_effective_mc or 1
+
+    for i, e in enumerate(entries):
+        nd = e.get("degree", 0) / max_degree
+        nm = effective_mentions[i] / max_effective_mc
+        na = e.get("article_count", 0) / max_article
+        cw = 0.40 * nd + 0.40 * nm + 0.20 * na
+        e["composite_weight"] = round(cw, 4)
+
+    return sorted(entries, key=lambda e: e["composite_weight"], reverse=True)
+
+
+def _consolidate_company_subsidiaries(
+    company_nodes: list[dict],
+    all_nodes_map: dict[str, dict],
+) -> list[dict]:
+    """Merge subsidiary stats into parent companies (leaderboard only).
+
+    - degree: sum parent + all children
+    - mention_count: sum parent + all children
+    - article_count: union of source_article IDs (no double-counting)
+
+    Subsidiaries are removed from the company list.
+    Returns a new list (does not mutate original graph data).
+    """
+    # Build set of all subsidiary IDs for fast lookup
+    all_sub_ids: set[str] = set()
+    for subs in COMPANY_SUBSIDIARIES.values():
+        all_sub_ids.update(subs)
+
+    result = []
+    consolidated_count = 0
+
+    for node in company_nodes:
+        nid = node["id"]
+
+        # Skip subsidiaries — their stats will be merged into parent
+        if nid in all_sub_ids:
+            continue
+
+        if nid in COMPANY_SUBSIDIARIES:
+            # Deep copy to avoid mutating the original graph node
+            merged = dict(node)
+            total_degree = node.get("degree", 0)
+            total_mentions = node.get("mention_count", 0)
+            # Collect article IDs from parent
+            all_articles: set[str] = set()
+            for a in node.get("source_articles", []):
+                aid = a.get("article_id", "")
+                if aid:
+                    all_articles.add(aid)
+
+            sub_names = []
+            for sub_id in COMPANY_SUBSIDIARIES[nid]:
+                sub_node = all_nodes_map.get(sub_id)
+                if sub_node:
+                    total_degree += sub_node.get("degree", 0)
+                    total_mentions += sub_node.get("mention_count", 0)
+                    for a in sub_node.get("source_articles", []):
+                        aid = a.get("article_id", "")
+                        if aid:
+                            all_articles.add(aid)
+                    sub_names.append(sub_node.get("name", sub_id))
+                else:
+                    print(f"  WARNING: subsidiary '{sub_id}' not found "
+                          f"in graph for parent '{nid}'")
+
+            merged["degree"] = total_degree
+            merged["mention_count"] = total_mentions
+            merged["article_count"] = len(all_articles)
+            result.append(merged)
+
+            print(f"  Consolidated: {node.get('name', nid)} "
+                  f"← {', '.join(sub_names)} "
+                  f"(deg={total_degree}, men={total_mentions}, "
+                  f"art={len(all_articles)})")
+            consolidated_count += 1
+        else:
+            # Non-parent company: shallow copy for CW mutation safety
+            result.append(dict(node))
+
+    removed = len(company_nodes) - len(result)
+    print(f"  Company consolidation: {consolidated_count} parents merged, "
+          f"{removed} subsidiaries removed")
+    return result
+
+
 def build_leaderboards(data: dict) -> dict:
-    """Build the 4-category leaderboard from graph data."""
+    """Build the 4-category leaderboard from graph data.
+
+    Each category uses per-category normalization: composite_weight is
+    computed using max values from within that category only, so that
+    rankings reflect relative importance among peers.
+
+    Company leaderboard additionally consolidates subsidiary stats into
+    parent companies (configured in overrides.py COMPANY_SUBSIDIARIES).
+    """
     nodes = data.get("nodes", [])
     links = data.get("links", [])
     nmap = {n["id"]: n for n in nodes}
@@ -119,34 +252,45 @@ def build_leaderboards(data: dict) -> dict:
             if src_node and src_node.get("type") == "person":
                 founder_persons.add(link["source"])
 
-    # Products: type=product, sorted by composite_weight, top 20
-    products = sorted(
-        [n for n in nodes if n.get("type") == "product"],
-        key=lambda n: n.get("composite_weight", 0),
-        reverse=True,
-    )[:20]
+    # ── Collect raw category pools (shallow copies for CW mutation) ──
 
-    # Founders: type=person with founder_of/co_founded edges, top 20
-    founders = sorted(
-        [n for n in nodes
-         if n.get("type") == "person" and n["id"] in founder_persons],
-        key=lambda n: n.get("composite_weight", 0),
-        reverse=True,
-    )[:20]
+    raw_products = [dict(n) for n in nodes if n.get("type") == "product"]
+    founder_excludes = set(LEADERBOARD_EXCLUDE.get("founders", []))
+    raw_founders = [dict(n) for n in nodes
+                    if n.get("type") == "person"
+                    and n["id"] in founder_persons
+                    and n["id"] not in founder_excludes]
 
-    # VCs: type=vc_firm, all
-    vcs = sorted(
-        [n for n in nodes if n.get("type") == "vc_firm"],
-        key=lambda n: n.get("composite_weight", 0),
-        reverse=True,
-    )
+    # VCs: type=vc_firm + special company nodes that act as VCs
+    vc_ids = {n["id"] for n in nodes if n.get("type") == "vc_firm"}
+    VC_LEADERBOARD_EXTRAS = {"蚂蚁集团"}
+    for nid in VC_LEADERBOARD_EXTRAS:
+        if nid in nmap:
+            vc_ids.add(nid)
+    raw_vcs = [dict(n) for n in nodes if n["id"] in vc_ids]
 
-    # Companies: type=company, top 20
-    companies = sorted(
-        [n for n in nodes if n.get("type") == "company"],
-        key=lambda n: n.get("composite_weight", 0),
-        reverse=True,
-    )[:20]
+    raw_companies = [dict(n) for n in nodes if n.get("type") == "company"]
+
+    # ── Company subsidiary consolidation (before normalization) ──
+    print("\n  -- Company subsidiary consolidation --")
+    raw_companies = _consolidate_company_subsidiaries(raw_companies, nmap)
+
+    # ── Per-category normalization + sort + top N ──
+    print("\n  -- Per-category normalization --")
+
+    products = _compute_category_cw(raw_products)[:20]
+    founders = _compute_category_cw(raw_founders)[:20]
+    vcs = _compute_category_cw(raw_vcs)  # no limit (small list)
+    companies = _compute_category_cw(raw_companies)[:20]
+
+    for cat_name, cat_list in [("products", products), ("founders", founders),
+                               ("vcs", vcs), ("companies", companies)]:
+        if cat_list:
+            top = cat_list[0]
+            print(f"  {cat_name}: {len(cat_list)} entries, "
+                  f"#1 = {top.get('name', '?')} (cw={top['composite_weight']:.4f})")
+
+    # ── Build output ──
 
     def make_entry(rank: int, n: dict) -> dict:
         desc = n.get("description", "")
@@ -236,40 +380,299 @@ def update_display_registry(node_segments: dict[str, list[str]]) -> None:
           f"(sizeBoost removed)")
 
 
-# ── Article Index ─────────────────────────────────────────────────────
+# ── Article Payloads ──────────────────────────────────────────────────
 
-def build_article_index(data: dict) -> list[dict] | None:
-    """Build article index from source_articles across all nodes.
-    If an existing article-index.json is found, copy it instead."""
-    # Check existing article index files
-    for candidate in [EXISTING_ARTICLE_INDEX, ARTICLE_INDEX_PATH]:
-        if candidate.exists():
-            existing = load_json(candidate)
-            if existing:
-                print(f"  Copying existing article index from {candidate}")
-                return existing
+def _compact_text(text: str) -> str:
+    return " ".join((text or "").split())
 
-    # Build from graph data -- extract unique articles from source_articles
-    articles_by_id: dict[str, dict] = {}
-    for node in data.get("nodes", []):
-        for art in node.get("source_articles", []):
-            aid = art.get("article_id", "")
-            if aid and aid not in articles_by_id:
-                articles_by_id[aid] = {
-                    "id": aid,
-                    "title": art.get("title", ""),
-                    "date": art.get("date", ""),
-                    "path": art.get("path", ""),
-                    "permalink": art.get("permalink", f"/articles/{aid}"),
-                }
 
-    if not articles_by_id:
-        print("  No articles found in graph data")
+def build_excerpt(markdown: str, max_len: int = 220) -> str:
+    compact = _compact_text(markdown)
+    if len(compact) <= max_len:
+        return compact
+    return compact[: max_len - 3].rstrip() + "..."
+
+
+def _build_graph_lookup(graph_data: dict) -> tuple[dict[str, dict], dict[str, str]]:
+    id_to_node = {node["id"]: node for node in graph_data.get("nodes", [])}
+    lookup: dict[str, str] = {}
+
+    for node in graph_data.get("nodes", []):
+        node_id = node["id"]
+        candidates = [
+            node_id,
+            node.get("name", ""),
+            node.get("displayName", ""),
+            *node.get("aliases", []),
+        ]
+        for candidate in candidates:
+            raw = str(candidate or "").strip()
+            if not raw:
+                continue
+            lookup.setdefault(raw, node_id)
+            lookup.setdefault(raw.casefold(), node_id)
+            lookup.setdefault(sanitize_id(raw), node_id)
+
+    return id_to_node, lookup
+
+
+def _resolve_graph_node_id(value: object, lookup: dict[str, str]) -> str | None:
+    raw = str(value or "").strip()
+    if not raw:
         return None
+    return (
+        lookup.get(raw)
+        or lookup.get(raw.casefold())
+        or lookup.get(sanitize_id(raw))
+    )
 
-    articles = sorted(articles_by_id.values(), key=lambda a: a.get("id", ""))
-    print(f"  Built article index with {len(articles)} articles from graph")
-    return articles
+
+def _merge_entity_ids(graph_node_ids: set[str]) -> dict[str, str]:
+    remap: dict[str, str] = {}
+
+    for merge in NODE_MERGES:
+        keep_id = merge["keep"]
+        if keep_id not in graph_node_ids:
+            continue
+        for removed_id in merge.get("remove", []):
+            remap[removed_id] = keep_id
+
+    for canonical_name, aliases in MERGE_MAP.items():
+        canonical_id = sanitize_id(canonical_name)
+        if canonical_id not in graph_node_ids:
+            continue
+        for alias in aliases:
+            alias_id = sanitize_id(alias)
+            if alias_id != canonical_id:
+                remap.setdefault(alias_id, canonical_id)
+
+    return remap
+
+
+def build_article_payloads(
+    source_articles: list[dict],
+    graph_data: dict,
+) -> tuple[list[dict], list[str]]:
+    id_to_node, lookup = _build_graph_lookup(graph_data)
+    graph_node_ids = set(id_to_node)
+    entity_id_remap = _merge_entity_ids(graph_node_ids)
+    payloads: list[dict] = []
+    missing_artifact_ids: list[str] = []
+
+    for article in source_articles:
+        article_id = article["id"]
+        if article_id in EXCLUDED_ARTICLES:
+            continue
+
+        artifact = load_json(extracted_artifact_path(article_id)) or {}
+        if not artifact:
+            missing_artifact_ids.append(article_id)
+
+        entities = []
+        seen_entity_ids: set[str] = set()
+        for entity in artifact.get("entities", []):
+            raw_id = str(entity.get("id", "")).strip()
+            canonical_id = entity_id_remap.get(raw_id)
+            if canonical_id is None:
+                canonical_id = _resolve_graph_node_id(raw_id, lookup)
+            if canonical_id is None:
+                canonical_id = _resolve_graph_node_id(entity.get("name"), lookup)
+            if canonical_id is None or canonical_id in seen_entity_ids:
+                continue
+
+            node = id_to_node[canonical_id]
+            entity_aliases = {
+                str(alias).strip()
+                for alias in entity.get("aliases", [])
+                if str(alias).strip()
+            }
+            entity_aliases.update(
+                str(alias).strip()
+                for alias in node.get("aliases", [])
+                if str(alias).strip()
+            )
+            entity_aliases.discard(node.get("name", canonical_id))
+
+            entities.append({
+                "id": canonical_id,
+                "name": node.get("displayName", node.get("name", canonical_id)),
+                "type": node.get("type", entity.get("type", "product")),
+                "description": node.get("description", entity.get("description", "")),
+                "mention_count": int(entity.get("mention_count", 0)),
+                "aliases": sorted(entity_aliases),
+                "tags": [
+                    str(tag).strip()
+                    for tag in entity.get("tags", [])
+                    if str(tag).strip()
+                ],
+            })
+            seen_entity_ids.add(canonical_id)
+
+        relationships = []
+        seen_relationships: set[tuple[str, str, str, str]] = set()
+        for relationship in artifact.get("relationships", []):
+            relation_type = str(
+                relationship.get("relation_type")
+                or relationship.get("type")
+                or "related"
+            ).strip() or "related"
+            label = str(
+                relationship.get("label")
+                or relationship.get("description")
+                or relation_type
+            ).strip() or relation_type
+            source_id = _resolve_graph_node_id(relationship.get("source"), lookup)
+            target_id = _resolve_graph_node_id(relationship.get("target"), lookup)
+            if not source_id or not target_id or source_id == target_id:
+                continue
+
+            dedupe_key = (source_id, target_id, relation_type, label)
+            if dedupe_key in seen_relationships:
+                continue
+            seen_relationships.add(dedupe_key)
+
+            source_node = id_to_node[source_id]
+            target_node = id_to_node[target_id]
+            relationships.append({
+                "source_id": source_id,
+                "target_id": target_id,
+                "source": source_node.get("displayName", source_node.get("name", source_id)),
+                "target": target_node.get("displayName", target_node.get("name", target_id)),
+                "relation_type": relation_type,
+                "label": label,
+                "weight": max(int(relationship.get("weight", 1)), 1),
+            })
+
+        entities.sort(key=lambda item: (-item["mention_count"], item["name"]))
+        relationships.sort(
+            key=lambda item: (
+                item["relation_type"],
+                item["source"],
+                item["target"],
+                item["label"],
+            )
+        )
+
+        payloads.append({
+            "id": article_id,
+            "title": article["title"],
+            "date": article["date"],
+            "author": article["author"],
+            "path": article["path"],
+            "permalink": f"/articles/{article_id}",
+            "markdown_link": article["path"],
+            "raw_markdown": article["raw_text"],
+            "body_markdown": article["text"],
+            "excerpt": build_excerpt(article["text"]),
+            "entity_count": len(entities),
+            "relationship_count": len(relationships),
+            "entities": entities,
+            "relationships": relationships,
+        })
+
+    payloads.sort(key=lambda item: item["id"])
+    return payloads, missing_artifact_ids
+
+
+def sync_article_payloads(article_payloads: list[dict]) -> None:
+    ARTICLE_PAYLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    expected_filenames = {f"{payload['id']}.json" for payload in article_payloads}
+
+    for existing in ARTICLE_PAYLOAD_DIR.glob("*.json"):
+        if existing.name not in expected_filenames:
+            existing.unlink()
+
+    for payload in article_payloads:
+        save_json(ARTICLE_PAYLOAD_DIR / f"{payload['id']}.json", payload)
+
+
+def build_article_index(
+    article_payloads: list[dict],
+    *,
+    is_partial: bool,
+    missing_article_ids: list[str],
+) -> dict:
+    articles = [
+        {
+            "id": payload["id"],
+            "title": payload["title"],
+            "date": payload["date"],
+            "author": payload["author"],
+            "path": payload["path"],
+            "permalink": payload["permalink"],
+            "markdown_link": payload["markdown_link"],
+            "excerpt": payload["excerpt"],
+            "entity_count": payload["entity_count"],
+            "relationship_count": payload["relationship_count"],
+        }
+        for payload in article_payloads
+    ]
+
+    return {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "count": len(articles),
+        "isPartial": is_partial,
+        "missingArticleIds": missing_article_ids,
+        "articles": articles,
+    }
+
+
+def validate_graph_metadata(graph_data: dict, expected_article_count: int) -> None:
+    metadata = graph_data.get("metadata", {})
+    article_count = metadata.get("articleCount")
+    included_article_count = metadata.get("includedArticleCount")
+    if article_count != expected_article_count:
+        raise ValueError(
+            f"Graph metadata articleCount={article_count}, expected {expected_article_count}"
+        )
+    if included_article_count != expected_article_count:
+        raise ValueError(
+            "Graph metadata includedArticleCount="
+            f"{included_article_count}, expected {expected_article_count}"
+        )
+
+
+def validate_article_payloads(
+    article_payloads: list[dict],
+    graph_data: dict,
+    *,
+    expected_article_ids: list[str],
+) -> None:
+    graph_node_ids = {node["id"] for node in graph_data.get("nodes", [])}
+    generated_article_ids = [payload["id"] for payload in article_payloads]
+    if generated_article_ids != expected_article_ids:
+        raise ValueError(
+            "Article payload IDs do not match source corpus. "
+            f"expected={expected_article_ids}, got={generated_article_ids}"
+        )
+
+    bad_entity_refs: list[str] = []
+    bad_relationship_refs: list[str] = []
+
+    for payload in article_payloads:
+        for entity in payload.get("entities", []):
+            if entity["id"] not in graph_node_ids:
+                bad_entity_refs.append(f"{payload['id']}:{entity['id']}")
+        for relationship in payload.get("relationships", []):
+            if relationship["source_id"] not in graph_node_ids:
+                bad_relationship_refs.append(
+                    f"{payload['id']}:source:{relationship['source_id']}"
+                )
+            if relationship["target_id"] not in graph_node_ids:
+                bad_relationship_refs.append(
+                    f"{payload['id']}:target:{relationship['target_id']}"
+                )
+
+    if bad_entity_refs:
+        raise ValueError(
+            "Article payloads contain entity IDs missing from graph: "
+            + ", ".join(sorted(bad_entity_refs)[:10])
+        )
+    if bad_relationship_refs:
+        raise ValueError(
+            "Article payloads contain relationship refs missing from graph: "
+            + ", ".join(sorted(bad_relationship_refs)[:10])
+        )
 
 
 # ── Main ──────────────────────────────────────────────────────────────
@@ -292,6 +695,12 @@ def main() -> None:
 
     # Ensure output directory exists
     WEB_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    source_articles = load_articles()
+    expected_article_ids = [
+        article["id"]
+        for article in source_articles
+        if article["id"] not in EXCLUDED_ARTICLES
+    ]
 
     # 1. Graph view
     print(f"\n{'=' * 70}")
@@ -314,32 +723,48 @@ def main() -> None:
             print(f"    #{e['rank']} {e['name']} "
                   f"(cw={e['composite_weight']:.4f})")
 
-    # 3. Article index
+    # 3. Per-article payloads
+    print(f"\n{'=' * 70}")
+    print("Generate article payloads")
+    print("=" * 70)
+    article_payloads, missing_artifact_ids = build_article_payloads(
+        source_articles,
+        graph_view,
+    )
+    sync_article_payloads(article_payloads)
+    print(f"  Article payloads: {len(article_payloads)}")
+    if missing_artifact_ids:
+        print(f"  Missing extracted artifacts: {', '.join(missing_artifact_ids)}")
+
+    # 4. Article index
     print(f"\n{'=' * 70}")
     print("Generate article-index.json")
     print("=" * 70)
-    article_list = build_article_index(data)
-    if article_list is not None:
-        # Ensure list format (unwrap if wrapped in dict)
-        if isinstance(article_list, dict) and "articles" in article_list:
-            raw_list = article_list["articles"]
-        else:
-            raw_list = article_list
-        # Frontend expects { articles: [...], count: N } format
-        from datetime import datetime, timezone
-        article_index = {
-            "generatedAt": datetime.now(timezone.utc).isoformat(),
-            "count": len(raw_list),
-            "isPartial": False,
-            "missingArticleIds": [],
-            "articles": raw_list,
-        }
-        save_json(ARTICLE_INDEX_PATH, article_index)
-        print(f"  Articles: {len(raw_list)}")
-    else:
-        print("  Skipped (no article data available)")
+    combined_missing_ids = sorted(
+        set(graph_view["metadata"].get("missingArticleIds", []))
+        | set(missing_artifact_ids)
+    )
+    article_index = build_article_index(
+        article_payloads,
+        is_partial=bool(graph_view["metadata"].get("isPartial")) or bool(combined_missing_ids),
+        missing_article_ids=combined_missing_ids,
+    )
+    save_json(ARTICLE_INDEX_PATH, article_index)
+    print(f"  Articles: {article_index['count']}")
 
-    # 4. Display registry
+    # 5. Validation
+    print(f"\n{'=' * 70}")
+    print("Validate generated data")
+    print("=" * 70)
+    validate_graph_metadata(graph_view, len(expected_article_ids))
+    validate_article_payloads(
+        article_payloads,
+        graph_view,
+        expected_article_ids=expected_article_ids,
+    )
+    print("  OK: graph metadata and article payloads are internally consistent")
+
+    # 6. Display registry
     print(f"\n{'=' * 70}")
     print("Update display_registry.json")
     print("=" * 70)
@@ -354,8 +779,8 @@ def main() -> None:
     print(f"  leaderboards.json:     "
           f"{sum(len(v) for v in leaderboards['segments'].values())} entries "
           f"across {len(leaderboards['segments'])} segments")
-    if article_list:
-        print(f"  article-index.json:    {len(raw_list)} articles")
+    print(f"  articles/*.json:       {len(article_payloads)} files")
+    print(f"  article-index.json:    {article_index['count']} articles")
     print(f"\nOutput directory: {WEB_DATA_DIR}")
     print(f"Display registry: {DISPLAY_REGISTRY_PATH}")
 

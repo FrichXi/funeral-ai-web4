@@ -1,20 +1,28 @@
 #!/bin/bash
-# Copy web-data to public/data for static serving
+# Copy generated web-data into public/data for static serving.
+# web-data is the only supported source of truth for frontend assets.
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DATA_SRC="$PROJECT_ROOT/web-data"
 DATA_DEST="$SCRIPT_DIR/public/data"
 
-# On Vercel, web-data/ is outside the deployed directory.
-# If it doesn't exist but public/data/ already has the files (from git), skip the copy.
 if [ ! -d "$DATA_SRC" ]; then
-  if [ -f "$DATA_DEST/article-index.json" ]; then
-    echo "web-data/ not found but public/data/ already populated — skipping copy."
-    exit 0
-  else
-    echo "ERROR: web-data/ not found and public/data/ is empty." >&2
+  echo "ERROR: web-data/ not found. Run the data pipeline before building the site." >&2
+  exit 1
+fi
+
+for required_file in graph-view.json article-index.json leaderboards.json; do
+  if [ ! -f "$DATA_SRC/$required_file" ]; then
+    echo "ERROR: Missing required generated file: $DATA_SRC/$required_file" >&2
     exit 1
   fi
+done
+
+if [ ! -d "$DATA_SRC/articles" ]; then
+  echo "ERROR: Missing generated article directory: $DATA_SRC/articles" >&2
+  exit 1
 fi
 
 echo "Copying data from $DATA_SRC to $DATA_DEST ..."

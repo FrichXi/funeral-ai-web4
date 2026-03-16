@@ -48,6 +48,10 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      dropShadow: {
+        'brand': '0 0 24px rgba(115, 81, 207, 0.4)',
+        'brand-lg': '0 0 40px rgba(115, 81, 207, 0.5)',
+      },
       fontFamily: {
         sans: ['"Fusion Pixel"', '"Press Start 2P"', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'monospace'],

@@ -161,6 +161,8 @@ export default function GraphCanvas({ focusNodeId }: GraphCanvasProps) {
         ref={containerRef}
         className="absolute inset-0"
         style={{ width: '100%', height: '100%' }}
+        aria-label="知识图谱可视化"
+        role="img"
       />
 
       {/* Loading overlay */}

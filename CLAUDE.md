@@ -1,10 +1,10 @@
 # 葬AI 知识图谱分析站点
 
-> Last verified: 2026-03-15
+> Last verified: 2026-03-16
 
 ## 项目概述
 
-为中文 AI 行业评论媒体"葬AI"搭建公开知识图谱分析站点。68 篇文章经 Gemini 提取实体与关系，聚合为知识图谱（具体节点/边数量见 `web-data/graph-view.json`）。纯静态部署，无后端。
+为中文 AI 行业评论媒体"葬AI"搭建公开知识图谱分析站点。70 篇文章（编号 001-070，003 缺）经 Gemini 提取实体与关系，聚合为知识图谱（具体节点/边数量见 `web-data/graph-view.json`）。纯静态部署，无后端。
 
 ## 品牌风格
 
@@ -141,6 +141,19 @@ acquires, co_founded, collaborates_with, compares_to, competes_with, criticizes,
 - `next build` → 纯静态 `out/`
 - 部署目标: Vercel / Netlify / Cloudflare Pages
 
+## 前端布局契约
+
+前端维护规则统一写在 `docs/frontend-layout-contracts.md`。做 UI/布局相关改动时，先看这个文档。
+
+速记规则：
+
+- 不要为了前端维护去改 `scripts/`、`data/`、`web-data/`、`pipeline.toml`
+- 页面壳管 `max-width`、gutter、grid、sticky/fixed、跨区块对齐
+- feature 组件只管本功能内部布局
+- primitive 如需影响布局，必须暴露显式 prop/variant
+- `--navbar-height` 是导航高度唯一来源
+- 排行榜对齐规则以该文档为准，不要再用嵌套 `justify-center` 拼凑
+
 ## 提取管线
 
 ### 全链路命令
@@ -156,18 +169,49 @@ cd site && npm run build                         # 构建前端
 
 ### 后处理规则
 所有领域知识集中在 `scripts/overrides.py`（纯数据文件）：
+- MISSING_NODES: 补充 Gemini 未提取的节点（step0b）
 - NODE_MERGES: 同义节点合并
 - TYPE_CORRECTIONS: 实体类型修正
+- DESCRIPTION_OVERRIDES: 节点描述中性化改写（step3b）
 - EDGE_TYPE_FIXES: 关系类型/端点修正
 - MISSING_EDGES: 补充 Gemini 无法推导的关系
 - BIDIRECTIONAL_RELATION_TYPES: 对称关系双向补全
+- COMPANY_SUBSIDIARIES: 公司排行榜子公司合并规则（仅排行榜，不影响图谱）
+- EXCLUDED_ARTICLES: 排除的文章ID集合（聚合和文章索引均跳过）
+
+### 排序公式（composite_weight）
+
+**公式**（三个独立维度，各自归一化后加权求和）：
+
+`cw = 0.40 * (degree/max_d) + 0.40 * (effective_mc/max_mc) + 0.20 * (article_count/max_a)`
+
+- **degree（连接数）权重 40%**：体现在知识图谱中的网络枢纽性
+- **effective_mc（提及数）权重 40%**：体现被深度讨论的程度
+- **article_count（文章覆盖）权重 20%**：体现跨文章的广泛性
+
+**标题提及奖励**：文章标题中出现的实体，每篇文章额外 +5 mention_count（在 `graph_builder.py` 聚合阶段添加）。不修改 extracted 数据，仅影响聚合后的 mention_count。
+
+其中 `effective_mc = min(mention_count, 25 * article_count)`，每篇文章最多计 25 次有效提及，抑制单篇专访高频提及但跨文章覆盖率低的实体。
+
+**两种归一化场景**：
+
+- **图谱节点大小**：使用全局 composite_weight（`post_process.py` step7），所有节点共用同一组 max 值。这决定图谱中节点的视觉大小。
+- **排行榜排名**：使用分类内 composite_weight（`build_presentation.py`），每个排行榜独立计算 max 值归一化。产品榜用产品的最大值，创始人榜用创始人的最大值，互不干扰。
+
+**公司排行榜子公司合并**（仅排行榜，不影响图谱可视化）：
+- 合并前汇总子公司的 degree（求和）、mention_count（求和）、article_count（文章集合取并集去重）
+- 子公司从公司排行榜中移除，其数据并入母公司
+- 合并规则见 `overrides.py` 的 `COMPANY_SUBSIDIARIES`
+
+**排行榜排除规则**：见 `overrides.py` 的 `LEADERBOARD_EXCLUDE`（如葬AI作者从创始人榜排除）
 
 ## 变更规范
 
 每次改动必须：
 1. 在 `CHANGELOG.md` 的 `[Unreleased]` 下添加条目
 2. 如涉及架构变更（新文件/目录、路由变更、数据流变更），同步更新 `CLAUDE.md`
-3. 新增节点类型 → 只改 `constants.ts` 的 `NODE_TYPE_REGISTRY` + `types.ts` 的 `NodeType`
-4. 新增关系类型 → 只改 `constants.ts` 的 `RELATION_STYLES` + `types.ts` 的 `RelationType`
-5. 新增后处理规则 → 只改 `overrides.py`
-6. 新增实体类型 → 同时改 `graph_utils.py` 的 `ALLOWED_ENTITY_TYPES` + `TYPE_ALIASES`
+3. 如涉及前端布局/组件边界变更，同步检查 `docs/frontend-layout-contracts.md` 是否需要更新
+4. 新增节点类型 → 只改 `constants.ts` 的 `NODE_TYPE_REGISTRY` + `types.ts` 的 `NodeType`
+5. 新增关系类型 → 只改 `constants.ts` 的 `RELATION_STYLES` + `types.ts` 的 `RelationType`
+6. 新增后处理规则 → 只改 `overrides.py`
+7. 新增实体类型 → 同时改 `graph_utils.py` 的 `ALLOWED_ENTITY_TYPES` + `TYPE_ALIASES`

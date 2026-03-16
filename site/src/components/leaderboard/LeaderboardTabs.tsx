@@ -20,7 +20,7 @@ interface LeaderboardTabsProps {
 }
 
 /** Pixel-art rank medal for top 3 */
-function RankBadge({ rank }: { rank: number }) {
+export function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
       <span className="inline-flex items-center justify-center w-8 h-8 text-lg" title="1st">
@@ -55,7 +55,7 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-function TypeBadge({ type }: { type: string }) {
+export function TypeBadge({ type }: { type: string }) {
   const label = NODE_TYPE_LABELS[type] ?? type;
   const badgeClasses = NODE_BADGE_CLASSES[type] ?? 'bg-[#94a3b8] border-[#94a3b8] text-white';
 
@@ -66,7 +66,7 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-function EntryRow({ entry }: { entry: LeaderboardEntry }) {
+export function EntryRow({ entry }: { entry: LeaderboardEntry }) {
   const isTop3 = entry.rank <= 3;
   const isFeatured = entry.featured;
 
@@ -125,7 +125,7 @@ function EntryRow({ entry }: { entry: LeaderboardEntry }) {
   );
 }
 
-function SegmentTable({ entries }: { entries: LeaderboardEntry[] }) {
+export function SegmentTable({ entries }: { entries: LeaderboardEntry[] }) {
   if (entries.length === 0) {
     return (
       <p className="retro text-xs text-muted-foreground text-center py-10">
@@ -135,8 +135,8 @@ function SegmentTable({ entries }: { entries: LeaderboardEntry[] }) {
   }
 
   return (
-    <div className="w-full overflow-x-auto max-w-4xl">
-      <Table className="w-full">
+    <div className="w-full max-w-4xl overflow-x-auto lg:w-fit">
+      <Table className="w-full" layout="intrinsic" align="center">
         <TableHeader>
           <TableRow>
             <TableHead className="w-12 text-center text-[10px] md:text-xs">#</TableHead>

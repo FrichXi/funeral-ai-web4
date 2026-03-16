@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Core } from 'cytoscape';
 import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/8bit/input';
 import { NODE_COLORS, NODE_TYPE_LABELS } from '@/lib/constants';
 
 interface GraphControlsProps {
@@ -23,6 +23,7 @@ export function GraphControls({ cy, onSelectNode, typeFilters, onToggleType }: G
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = useCallback((value: string) => {
@@ -131,28 +132,42 @@ export function GraphControls({ cy, onSelectNode, typeFilters, onToggleType }: G
         )}
       </div>
 
-      {/* Type filters */}
-      <div className="border-t border-border px-3 py-2 flex flex-wrap gap-2">
-        {Object.entries(NODE_TYPE_LABELS).map(([type, label]) => {
-          const active = typeFilters[type] !== false;
-          return (
-            <button
-              key={type}
-              onClick={() => onToggleType(type)}
-              className={`flex items-center gap-1.5 rounded px-2 py-1 text-[11px] border transition-colors ${
-                active
-                  ? 'border-border bg-secondary text-foreground'
-                  : 'border-transparent bg-transparent text-muted-foreground opacity-50'
-              }`}
-            >
-              <span
-                className="inline-block size-2 rounded-full"
-                style={{ backgroundColor: active ? NODE_COLORS[type] : '#555' }}
-              />
-              {label}
-            </button>
-          );
-        })}
+      {/* Type filters — collapsible on mobile */}
+      <div className="border-t border-border">
+        <button
+          onClick={() => setFiltersExpanded(!filtersExpanded)}
+          className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-muted-foreground lg:hidden"
+          aria-expanded={filtersExpanded}
+          aria-controls="graph-type-filters"
+        >
+          <span>类型筛选</span>
+          <span className="text-[10px]">{filtersExpanded ? '\u25B2' : '\u25BC'}</span>
+        </button>
+        <div
+          id="graph-type-filters"
+          className={`px-3 py-2 flex flex-wrap gap-2 ${filtersExpanded ? 'block' : 'hidden lg:flex'}`}
+        >
+          {Object.entries(NODE_TYPE_LABELS).map(([type, label]) => {
+            const active = typeFilters[type] !== false;
+            return (
+              <button
+                key={type}
+                onClick={() => onToggleType(type)}
+                className={`flex items-center gap-1.5 rounded px-2 py-1 text-[11px] border transition-colors ${
+                  active
+                    ? 'border-border bg-secondary text-foreground'
+                    : 'border-transparent bg-transparent text-muted-foreground opacity-50'
+                }`}
+              >
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{ backgroundColor: active ? NODE_COLORS[type] : '#555' }}
+                />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

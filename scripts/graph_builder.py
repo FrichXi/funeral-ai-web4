@@ -27,6 +27,7 @@ from graph_utils import (
     relation_strength,
     sanitize_id,
 )
+from overrides import EXCLUDED_ARTICLES
 from pipeline_state import (
     CANONICAL_FULL_GRAPH_FILE,
     CANONICAL_GRAPH_FILE,
@@ -295,6 +296,8 @@ def load_article_artifacts(article_ids: list[str] | None = None) -> list[dict]:
     artifacts = []
     for path in sorted(EXTRACTED_DIR.glob("*.json")):
         article_id = path.stem
+        if article_id in EXCLUDED_ARTICLES:
+            continue
         if selected and article_id not in selected:
             continue
         payload = load_json_file(path, None)
@@ -326,6 +329,11 @@ def aggregate_article_artifacts(
                 continue
 
             mention_count = max(int(entity.get("mention_count", 1)), 1)
+            # Title mention bonus: +5 per article if entity appears in title
+            title = article.get("title", "")
+            entity_aliases = [str(a).strip() for a in entity.get("aliases", []) if str(a).strip()]
+            if _name_in_title(title, [name, *entity_aliases]):
+                mention_count += 5
             node_id = sanitize_id(name)
             article_entity_ids.add(node_id)
             record = entity_agg.setdefault(node_id, {
@@ -553,20 +561,24 @@ def derive_canonical_graph(full_graph: dict) -> dict:
 def build_graph_bundle_from_manifest(manifest: dict, allow_partial: bool = False) -> tuple[dict | None, dict | None, dict]:
     ready_ids = ready_article_ids(manifest)
     missing_ids = missing_article_ids(manifest)
+    included_ready_ids = [article_id for article_id in ready_ids if article_id not in EXCLUDED_ARTICLES]
+    included_missing_ids = [article_id for article_id in missing_ids if article_id not in EXCLUDED_ARTICLES]
     summary = {
         "ready_article_ids": ready_ids,
         "missing_article_ids": missing_ids,
         "ready_count": len(ready_ids),
         "missing_count": len(missing_ids),
+        "included_ready_count": len(included_ready_ids),
+        "included_missing_count": len(included_missing_ids),
     }
     if missing_ids and not allow_partial:
         return None, None, summary
 
-    artifacts = load_article_artifacts(ready_ids)
+    artifacts = load_article_artifacts(included_ready_ids)
     full_graph = aggregate_article_artifacts(
         artifacts,
-        expected_article_count=len(ready_ids) + len(missing_ids),
-        missing_ids=missing_ids,
+        expected_article_count=len(included_ready_ids) + len(included_missing_ids),
+        missing_ids=included_missing_ids,
     )
     canonical_graph = derive_canonical_graph(full_graph)
     return full_graph, canonical_graph, summary

@@ -68,6 +68,7 @@ export const RELATION_STYLES: Record<RelationType, RelationStyle> = {
   praises:    { color: '#34d399', lineStyle: 'solid', arrow: true, category: '评价', label: '赞扬' },
   criticizes: { color: '#fb923c', lineStyle: 'solid', arrow: true, category: '评价', label: '批评' },
   mentors:    { color: '#34d399', lineStyle: 'solid', arrow: true, category: '评价', label: '指导' },
+  related:    { color: '#94a3b8', lineStyle: 'dashed', arrow: false, category: '其他', label: '相关' },
 };
 
 // ── Relation category colors (for legend) ──
@@ -78,7 +79,23 @@ export const RELATION_CATEGORIES = [
   { key: '竞争', color: '#ef4444', label: '竞争/对比' },
   { key: '合作', color: '#22d3ee', label: '合作/集成' },
   { key: '评价', color: '#34d399', label: '评价（赞扬/批评）' },
+  { key: '其他', color: '#94a3b8', label: '其他（相关）' },
 ];
+
+// ── Z-index hierarchy ──
+// Layers from bottom to top:
+//   GRAPH_CONTROLS (20) — filter/search panels on graph page
+//   GRAPH_LEGEND   (20) — type legend overlay on graph page
+//   GRAPH_TOOLTIP  (30) — hover tooltip on graph nodes
+//   ENTITY_DRAWER  (40) — slide-out entity detail panel
+//   NAVBAR         (50) — top navigation bar (always on top)
+export const Z_INDEX = {
+  GRAPH_CONTROLS: 20,
+  GRAPH_LEGEND: 20,
+  GRAPH_TOOLTIP: 30,
+  ENTITY_DRAWER: 40,
+  NAVBAR: 50,
+} as const;
 
 // ── Leaderboard segment config ──
 export const LEADERBOARD_SEGMENTS = [
@@ -86,4 +103,9 @@ export const LEADERBOARD_SEGMENTS = [
   { key: 'founders' as const, label: '创始人' },
   { key: 'vcs' as const, label: '投资机构' },
   { key: 'companies' as const, label: '公司' },
+];
+
+// ── Sponsor data (hardcoded) ──
+export const SPONSORS_DATA = [
+  { rank: 1, name: 'Justin', title: '葬爱Web4唯一指定金主', karma: '+200' },
 ];

@@ -67,7 +67,7 @@ export function ArticleList({ articles }: ArticleListProps) {
             >
               <Card className="h-full transition-colors hover:border-primary/50">
                 <CardHeader>
-                  <CardDescription font="normal" className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                  <CardDescription className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap font-sans">
                     <span>{article.date}</span>
                     <span className="text-border">|</span>
                     <span>{article.author}</span>
@@ -76,7 +76,7 @@ export function ArticleList({ articles }: ArticleListProps) {
                     {article.title}
                   </CardTitle>
                 </CardHeader>
-                <CardContent font="normal">
+                <CardContent className="font-sans">
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                     {article.excerpt}
                   </p>

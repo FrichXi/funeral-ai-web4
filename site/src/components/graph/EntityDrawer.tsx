@@ -182,7 +182,7 @@ export function EntityDrawer({ node, links, cy, onClose, onNavigateToNode }: Ent
   // --- Desktop: side panel (unchanged) ---
   if (!isMobile) {
     return (
-      <div className="fixed top-14 right-0 bottom-0 z-40 w-[400px] border-l border-border bg-background shadow-2xl flex flex-col">
+      <div className="fixed right-0 bottom-0 top-[calc(var(--navbar-height)+1rem)] z-40 w-[400px] border-l border-border bg-background shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 p-4 border-b border-border">
           <div className="min-w-0 flex-1">

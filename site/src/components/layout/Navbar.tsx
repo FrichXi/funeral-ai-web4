@@ -8,7 +8,7 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-50 h-10 border-b border-border bg-background/60 backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 h-[var(--navbar-height)] border-b border-border bg-background/60 backdrop-blur-sm">
       <div className="flex h-full items-center justify-between px-4">
         {/* Left: logo + site name */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">

@@ -2,7 +2,7 @@ import argparse
 import sys
 
 from graph_builder import build_graph_bundle_from_manifest, export_graphs
-from pipeline_state import load_manifest
+from pipeline_state import load_articles, load_manifest, save_manifest, sync_manifest
 
 
 def main() -> None:
@@ -10,7 +10,8 @@ def main() -> None:
     parser.add_argument("--allow-partial", action="store_true", help="Allow graph export when some articles are still pending")
     args = parser.parse_args()
 
-    manifest = load_manifest()
+    manifest = sync_manifest(load_manifest(), load_articles())
+    save_manifest(manifest)
     full_graph, canonical_graph, summary = build_graph_bundle_from_manifest(manifest, allow_partial=args.allow_partial)
     if full_graph is None or canonical_graph is None:
         print("Graph export skipped: some active articles are not ready yet.")

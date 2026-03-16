@@ -740,6 +740,94 @@
       "leaderboardSegments": [
         "companies"
       ]
+    },
+    {
+      "nodeId": "yinsen",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "founders"
+      ]
+    },
+    {
+      "nodeId": "蚂蚁集团投资部",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "vcs"
+      ]
+    },
+    {
+      "nodeId": "月之暗面",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "蚂蚁",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "ofo",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "uber",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "特斯拉",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "胖虎ai",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "b站",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "京东",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "小红书",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
     }
   ]
 }

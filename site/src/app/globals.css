@@ -19,6 +19,7 @@
 @layer base {
   /* 葬AI Dark Purple Theme — brand color #7351cf */
   :root {
+    --navbar-height: 2.5rem;
     --background: 255 10% 7%;
     --foreground: 260 20% 90%;
     --card: 260 30% 10%;

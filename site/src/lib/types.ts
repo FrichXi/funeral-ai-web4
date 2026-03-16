@@ -18,7 +18,7 @@ export interface GraphNode {
   article_count: number;
   aliases: string[];
   tags: string[];
-  references: string[];
+  references: number;
   source_article_count: number;
   source_articles: SourceArticle[];
   degree: number;
@@ -58,12 +58,15 @@ export interface Evidence {
   permalink: string;
   markdown_link: string;
   path: string;
-  quote: string;
+  label?: string;
+  weight?: number;
+  quote?: string;
 }
 
 export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
+  metadata?: Record<string, unknown>;
 }
 
 // ── Relation types ──
@@ -82,6 +85,7 @@ export type RelationType =
   | 'mentors'
   | 'partners_with'
   | 'praises'
+  | 'related'
   | 'works_at'
   | 'works_on';
 
@@ -126,6 +130,8 @@ export interface ArticleEntity {
 }
 
 export interface ArticleRelationship {
+  source_id: string;
+  target_id: string;
   source: string;
   target: string;
   relation_type: RelationType;
@@ -156,6 +162,7 @@ export interface LeaderboardEntry {
   degree: number;
   mention_count: number;
   article_count: number;
+  composite_weight?: number;
   visualMode?: string;
   asset?: NodeAsset;
   featured?: boolean;
@@ -169,10 +176,11 @@ export interface DisplayRegistry {
   updatedAt: string;
   defaults: { leaderboardSize: number };
   presentation: Record<string, unknown>;
-  nodes: Record<string, DisplayNodeConfig>;
+  nodes: DisplayNodeConfig[];
 }
 
 export interface DisplayNodeConfig {
+  nodeId?: string;
   sizeBoost?: number;
   visualMode?: string;
   featured?: boolean;
