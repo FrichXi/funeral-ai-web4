@@ -46,7 +46,7 @@
       "id": "海螺ai",
       "name": "海螺AI",
       "type": "product",
-      "description": "MiniMax旗下的AI视频与对话产品",
+      "description": "MiniMax开发的AI产品，支持语音和视频生成",
       "mention_count": 6,
       "aliases": [
         "海螺"
@@ -75,10 +75,11 @@
       "id": "deepseek",
       "name": "DeepSeek",
       "type": "company",
-      "description": "以更强性能、更低成本和支持本地化部署打破智谱护城河的AI公司",
+      "description": "AI大模型公司，其爆火为Cherry Studio带来大量流量",
       "mention_count": 2,
       "aliases": [
-        "Deepseek"
+        "Deepseek",
+        "Deepseek V4"
       ],
       "tags": [
         "开源模型",
@@ -138,7 +139,7 @@
       "id": "豆包",
       "name": "豆包",
       "type": "product",
-      "description": "字节跳动旗下的AI产品，被作者类比为中国版ChatGPT",
+      "description": "抖音旗下/字节系的AI大模型产品，也是《豆包AI赚钱手册》的核心探讨对象",
       "mention_count": 2,
       "aliases": [
         "豆姐"
@@ -156,10 +157,13 @@
       "mention_count": 1,
       "aliases": [
         "CC",
+        "CC SDK",
         "Claude 3.5 Sonnet",
         "Claude Code",
         "Claude code",
-        "cc"
+        "Claude code SDK",
+        "cc",
+        "沐秋"
       ],
       "tags": [
         "编程"
@@ -226,7 +230,7 @@
       "id": "智谱ai",
       "name": "智谱AI",
       "type": "company",
-      "description": "中国大模型初创公司，正面临大模型技术落后与商业化转型的两难困境",
+      "description": "国内AI大模型公司，为Cherry Studio提供免费API支持",
       "mention_count": 1,
       "aliases": [
         "智谱"

@@ -3,7 +3,7 @@ graph_builder.py -- Aggregate per-article extraction artifacts into unified grap
 
 Takes individual article extractions from data/extracted/{id}.json and produces:
   - data/graph/canonical_full.json  (all entities, no pruning)
-  - data/graph/canonical.json       (pruned: orphan nodes + weak edges removed)
+  - data/graph/canonical.json       (weak edges removed, mentioned entities retained)
 
 Key functions:
   - normalize_article_extraction()  -- Standardize raw Gemini output for one article
@@ -531,13 +531,14 @@ def derive_canonical_graph(full_graph: dict) -> dict:
 
     retained_links.sort(key=lambda item: (-item["weight"], item["relation_type"], item["source"], item["target"]))
 
-    # Remove orphan nodes (zero edges after all pruning)
+    # Keep mentioned entities even when their only weak "related" edge was
+    # pruned. Article pages and entity review need these entities to remain
+    # visible; only zero-mention ghosts should be dropped above.
     connected_ids = set()
     for link in retained_links:
         connected_ids.add(link.get("source"))
         connected_ids.add(link.get("target"))
-    orphan_count = len(retained_nodes) - len([n for n in retained_nodes if n["id"] in connected_ids])
-    retained_nodes = [node for node in retained_nodes if node["id"] in connected_ids]
+    orphan_count = len([node for node in retained_nodes if node["id"] not in connected_ids])
 
     return {
         "nodes": retained_nodes,
@@ -547,7 +548,7 @@ def derive_canonical_graph(full_graph: dict) -> dict:
             "source": "canonical-full-derived",
             "layer": "canonical",
             "pruning": {
-                "rule": "connected (degree >= 1) after weak-edge removal",
+                "rule": "mention_count >= 1; weak related edges removed; isolated mentioned entities retained",
                 "weakEdgesPruned": weak_edge_count,
                 "removedNodeCount": len(full_nodes) - len(retained_nodes),
                 "orphanedNodeCount": orphan_count,

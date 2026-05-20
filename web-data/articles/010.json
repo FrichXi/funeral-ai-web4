@@ -18,7 +18,10 @@
       "type": "product",
       "description": "一家AI公司，其关于“创始人神性”的话题被性压抑AI作为集体社会性阳痿的展演进行了解构。",
       "mention_count": 15,
-      "aliases": [],
+      "aliases": [
+        "Youware",
+        "Youware团队"
+      ],
       "tags": [
         "AI建站",
         "一句话生成",
@@ -29,10 +32,11 @@
       "id": "明超平",
       "name": "明超平",
       "type": "person",
-      "description": "YouWare创始人，前Kimi产品经理",
+      "description": "Youware创始人、产品经理，Bloome的打造者",
       "mention_count": 8,
       "aliases": [
-        "小明"
+        "小明",
+        "神父"
       ],
       "tags": []
     },

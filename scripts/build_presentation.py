@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date, datetime
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -109,23 +110,50 @@ def build_graph_view(data: dict) -> dict:
 # Per-category composite_weight formula (same as post_process.py step7,
 # but max values are computed within each category, not globally).
 #
-# CW = 0.40 * (degree / max_degree)
-#    + 0.40 * (effective_mc / max_effective_mc)
-#    + 0.20 * (article_count / max_article)
+# CW = 0.50 * (degree / max_degree)
+#    + 0.35 * (time_weighted_mc / max_time_weighted_mc)
+#    + 0.15 * (time_weighted_ac / max_time_weighted_ac)
 #
-# Where effective_mc = min(mention_count, 25 * article_count)
+# Time decay: decay(article) = 2^(-age_days / 180)
+# time_weighted_mc = Σ min(mc_per_article, 25) × decay
+# time_weighted_ac = Σ decay
+# Degree does NOT decay.
 #
-# Weight priority: connections ≈ mentions > articles.
 # This ensures each leaderboard ranks entities against their own peers,
 # not against unrelated entity types.
+
+HALF_LIFE = 180  # days
+_TODAY = date.today()
+
+
+def _decay(article_date_str: str) -> float:
+    try:
+        d = datetime.strptime(article_date_str, "%Y-%m-%d").date()
+        age = (_TODAY - d).days
+        return 2 ** (-age / HALF_LIFE)
+    except (ValueError, TypeError):
+        return 0.2
+
+
+def _compute_tw_metrics(entry: dict) -> tuple[float, float]:
+    """Compute time-weighted mention count and article count for one entry."""
+    tw_mc = 0.0
+    tw_ac = 0.0
+    for sa in entry.get("source_articles", []):
+        mc_raw = sa.get("mention_count", 1) if isinstance(sa, dict) else 1
+        mc_capped = min(mc_raw, 25)
+        d_str = sa.get("date", "") if isinstance(sa, dict) else ""
+        df = _decay(d_str)
+        tw_mc += mc_capped * df
+        tw_ac += df
+    return tw_mc, tw_ac
 
 
 def _compute_category_cw(entries: list[dict]) -> list[dict]:
     """Recompute composite_weight using per-category normalization.
 
-    Same formula as post_process.py step7, but max values are taken
-    from this category only (not global). This makes scores meaningful
-    within each leaderboard.
+    Same formula as post_process.py step7 (with time decay), but max
+    values are taken from this category only (not global).
 
     Mutates entries in-place (updates composite_weight).
     Returns the list sorted by composite_weight descending.
@@ -134,22 +162,17 @@ def _compute_category_cw(entries: list[dict]) -> list[dict]:
         return entries
 
     max_degree = max(e.get("degree", 0) for e in entries) or 1
-    max_article = max(e.get("article_count", 0) for e in entries) or 1
 
-    # Cap effective mentions at 25 per article
-    effective_mentions = []
-    for e in entries:
-        mc = e.get("mention_count", 0)
-        ac = max(e.get("article_count", 0), 1)
-        effective_mentions.append(min(mc, 25 * ac))
-    max_effective_mc = max(effective_mentions) if effective_mentions else 1
-    max_effective_mc = max_effective_mc or 1
+    # Compute time-weighted metrics for each entry
+    tw_data = [_compute_tw_metrics(e) for e in entries]
+    max_tw_mc = max(tw[0] for tw in tw_data) or 1
+    max_tw_ac = max(tw[1] for tw in tw_data) or 1
 
     for i, e in enumerate(entries):
         nd = e.get("degree", 0) / max_degree
-        nm = effective_mentions[i] / max_effective_mc
-        na = e.get("article_count", 0) / max_article
-        cw = 0.40 * nd + 0.40 * nm + 0.20 * na
+        nm = tw_data[i][0] / max_tw_mc
+        na = tw_data[i][1] / max_tw_ac
+        cw = 0.50 * nd + 0.35 * nm + 0.15 * na
         e["composite_weight"] = round(cw, 4)
 
     return sorted(entries, key=lambda e: e["composite_weight"], reverse=True)
@@ -188,12 +211,16 @@ def _consolidate_company_subsidiaries(
             merged = dict(node)
             total_degree = node.get("degree", 0)
             total_mentions = node.get("mention_count", 0)
-            # Collect article IDs from parent
+            # Collect article IDs and source_articles from parent
             all_articles: set[str] = set()
+            # Merge source_articles by article_id (keep highest mc per article)
+            sa_by_aid: dict[str, dict] = {}
             for a in node.get("source_articles", []):
                 aid = a.get("article_id", "")
                 if aid:
                     all_articles.add(aid)
+                    if aid not in sa_by_aid or a.get("mention_count", 0) > sa_by_aid[aid].get("mention_count", 0):
+                        sa_by_aid[aid] = a
 
             sub_names = []
             for sub_id in COMPANY_SUBSIDIARIES[nid]:
@@ -205,6 +232,13 @@ def _consolidate_company_subsidiaries(
                         aid = a.get("article_id", "")
                         if aid:
                             all_articles.add(aid)
+                            # Sum mention counts for same article
+                            if aid in sa_by_aid:
+                                existing = dict(sa_by_aid[aid])
+                                existing["mention_count"] = existing.get("mention_count", 0) + a.get("mention_count", 0)
+                                sa_by_aid[aid] = existing
+                            else:
+                                sa_by_aid[aid] = a
                     sub_names.append(sub_node.get("name", sub_id))
                 else:
                     print(f"  WARNING: subsidiary '{sub_id}' not found "
@@ -213,6 +247,7 @@ def _consolidate_company_subsidiaries(
             merged["degree"] = total_degree
             merged["mention_count"] = total_mentions
             merged["article_count"] = len(all_articles)
+            merged["source_articles"] = list(sa_by_aid.values())
             result.append(merged)
 
             print(f"  Consolidated: {node.get('name', nid)} "

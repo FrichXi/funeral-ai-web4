@@ -143,7 +143,7 @@ Produced by `build_presentation.py`. Same structure as `canonical_corrected.json
 
 Additional node fields:
 - `degree` (int) — Number of connected edges
-- `composite_weight` (float, 0-1) — Weighted score: `0.35*norm_degree + 0.40*norm_mention + 0.25*norm_article`
+- `composite_weight` (float, 0-1) — Weighted score: `0.50*(degree/max_d) + 0.35*(tw_mc/max_tw_mc) + 0.15*(tw_ac/max_tw_ac)` where `tw_mc`/`tw_ac` are time-weighted mention/article counts with 180-day half-life decay
 
 ---
 
@@ -183,15 +183,26 @@ Additional node fields:
 ## `web-data/article-index.json` — Article Index
 
 ```jsonc
-[
-  {
-    "id": "001",
-    "title": "Article Title",
-    "date": "2023-01-15",
-    "path": "articles/001_2023-01-15_author_title.md",
-    "permalink": "/articles/001"
-  }
-]
+{
+  "generatedAt": "2026-03-16T07:00:46.715737+00:00",
+  "count": 68,
+  "isPartial": false,
+  "missingArticleIds": [],
+  "articles": [
+    {
+      "id": "001",
+      "title": "Article Title",
+      "date": "2025-05-26",
+      "author": "authorname",
+      "path": "articles/001_2025-05-26_author_title.md",
+      "permalink": "/articles/001",
+      "markdown_link": "articles/001_2025-05-26_author_title.md",
+      "excerpt": "Article excerpt text...",
+      "entity_count": 4,
+      "relationship_count": 4
+    }
+  ]
+}
 ```
 
 ---

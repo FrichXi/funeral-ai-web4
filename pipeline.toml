@@ -13,3 +13,17 @@ max_retries = 6
 batch_size = 6
 cooldown_seconds = 8
 max_rounds = 30
+
+[article_source]
+name = "funeralai-substack"
+base_url = "https://funeralai.substack.com/"
+feed_url = "https://funeralai.substack.com/feed"
+archive_api_url = "https://funeralai.substack.com/api/v1/archive?sort=new&search=&offset=0&limit=20"
+
+[kg_review]
+last_holistic_review_article = "093"
+max_unreviewed_articles = 12
+recent_window_articles = 24
+candidate_pair_min_mentions = 3
+max_candidate_pairs_print = 20
+max_isolated_entities_print = 20

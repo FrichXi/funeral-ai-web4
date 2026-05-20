@@ -14,6 +14,27 @@ export default function LeaderboardPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: '排行榜 - 葬AI Web4',
+            url: 'https://funeralai.cc/leaderboard/',
+            mainEntity: {
+              '@type': 'ItemList',
+              name: '中文AI行业综合排行',
+              itemListElement: [
+                { '@type': 'ListItem', position: 1, name: '产品排行' },
+                { '@type': 'ListItem', position: 2, name: '创始人排行' },
+                { '@type': 'ListItem', position: 3, name: '投资机构排行' },
+                { '@type': 'ListItem', position: 4, name: '公司排行' },
+              ],
+            },
+          }),
+        }}
+      />
       <PageContainer>
         <LeaderboardPageClient data={data} />
       </PageContainer>

@@ -828,6 +828,94 @@
       "leaderboardSegments": [
         "companies"
       ]
+    },
+    {
+      "nodeId": "拓竹",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "飞书",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "products"
+      ]
+    },
+    {
+      "nodeId": "陈冕",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "founders"
+      ]
+    },
+    {
+      "nodeId": "yc",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "vcs"
+      ]
+    },
+    {
+      "nodeId": "真格",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "vcs"
+      ]
+    },
+    {
+      "nodeId": "elys",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "products"
+      ]
+    },
+    {
+      "nodeId": "张一鸣",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "founders"
+      ]
+    },
+    {
+      "nodeId": "vivix",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "自然选择",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "companies"
+      ]
+    },
+    {
+      "nodeId": "远识资本",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "vcs"
+      ]
+    },
+    {
+      "nodeId": "bloome",
+      "visualMode": "text",
+      "featured": false,
+      "leaderboardSegments": [
+        "products"
+      ]
     }
   ]
 }

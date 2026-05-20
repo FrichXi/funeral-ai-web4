@@ -1,8 +1,8 @@
 # 葬AI Knowledge Graph / 葬AI 知识图谱
 
-An open-source pipeline that turns a collection of Chinese AI industry commentary articles into an interactive knowledge graph. 68 articles are processed by Gemini to extract entities and relationships, then aggregated into a browsable graph with leaderboards.
+An open-source pipeline that turns a collection of Chinese AI industry commentary articles into an interactive knowledge graph. 93 articles are processed by Gemini to extract entities and relationships, then aggregated into a browsable graph with leaderboards.
 
-一个开源的知识图谱管线：将中文 AI 行业评论文章集合转化为可交互的知识图谱可视化站点。68 篇文章经 Gemini 提取实体与关系，聚合为包含排行榜的可浏览图谱。
+一个开源的知识图谱管线：将中文 AI 行业评论文章集合转化为可交互的知识图谱可视化站点。93 篇文章经 Gemini 提取实体与关系，聚合为包含排行榜的可浏览图谱。
 
 ## Architecture / 架构
 
@@ -66,6 +66,9 @@ python -m scripts.run_pipeline present     # Regenerate frontend JSON only
 
 # Process specific articles:
 python -m scripts.run_pipeline --articles 069 070
+
+# Pre-deploy graph review gate:
+python scripts/kg_review_gate.py
 ```
 
 ### Run the Frontend
@@ -89,7 +92,7 @@ npm run build      # Static export to site/out/
 ## Project Structure / 项目结构
 
 ```
-├── articles/              # Source markdown articles (001-068)
+├── articles/              # Source markdown articles (001-093)
 ├── scripts/               # Python pipeline
 │   ├── run_pipeline.py    # Unified CLI entry point
 │   ├── extract_gemini.py  # Gemini extraction
@@ -98,6 +101,7 @@ npm run build      # Static export to site/out/
 │   ├── pipeline_state.py  # Manifest management, config loading
 │   ├── overrides.py       # Declarative post-processing rules
 │   ├── post_process.py    # Apply overrides to graph
+│   ├── kg_review_gate.py  # Pre-deploy entity/relationship review gate
 │   └── build_presentation.py  # Generate frontend data
 ├── data/
 │   ├── config/            # display_registry.json, schema config
@@ -113,6 +117,19 @@ npm run build      # Static export to site/out/
 ## Configuration / 配置
 
 Pipeline settings are in `pipeline.toml`. Fork users can adjust model, prompt version, concurrency, etc. without editing Python source code.
+
+The `[kg_review]` section records the last holistic relationship review coverage. `site/npm run deploy` rebuilds the graph, runs `scripts/kg_review_gate.py`, builds the static site, then uploads. If new articles accumulate past `max_unreviewed_articles` or extracted entities disappear from frontend data, deployment fails until `overrides.py` and `last_holistic_review_article` are updated.
+
+## Article Source / 文章源
+
+The canonical live source for 葬AI articles is Substack: `https://funeralai.substack.com/`.
+This repository mirrors the configured local article corpus into `articles/` before pipeline runs; on this machine the local corpus is configured in `pipeline.local.toml` as `/Users/xixiangyu/Documents/咸鱼写作文本/葬AI`.
+
+To import new Substack posts into the configured corpus and refresh the repo mirror:
+
+```bash
+python -m scripts.import_substack_articles
+```
 
 ## Frontend Maintainability
 

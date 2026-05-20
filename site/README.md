@@ -24,6 +24,19 @@ npm run build        # Static export to out/
 
 Output is a pure static site (`next export`), deployable to Vercel / Netlify / Cloudflare Pages.
 
+## Deploy
+
+```bash
+npm run build
+npm run deploy
+```
+
+- `npm run deploy` is the recommended Cloudflare Pages deploy path for this repo and shell environment.
+- `npm run deploy` now runs the root data pipeline build and `scripts/kg_review_gate.py` before building and uploading, so stale holistic graph reviews or missing article entities block deployment.
+- The script explicitly unsets local proxy variables before calling `wrangler pages deploy out --project-name funeral-ai-web4`, because proxy settings on this machine can break wrangler OAuth refresh against `dash.cloudflare.com`.
+- Wrangler auth for this macOS environment lives in `~/Library/Preferences/.wrangler/config/default.toml`, not in repo `.env` files.
+- Keep `npm run deploy:raw` only for cases where you intentionally want the original wrangler command without clearing proxy variables.
+
 ## Project Structure
 
 ```

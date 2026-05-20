@@ -6,7 +6,7 @@ This is a PURE DATA file -- no logic, just declarations.
 """
 
 # ── Excluded articles (skipped during aggregation & article index) ──
-EXCLUDED_ARTICLES = {"011"}  # 011: B站发起视频播客，与AI无关
+EXCLUDED_ARTICLES = set()  # 葬AI-only corpus: include all source articles
 
 # ── Node merges (post-extraction, for cases MERGE_MAP can't handle) ──
 # Format: {"keep": canonical_id, "remove": [alias_ids],
@@ -70,6 +70,9 @@ NODE_MERGES = [
     {"keep": "葬ai", "remove": ["葬爱咸鱼科技有限公司"], "add_aliases": ["葬爱咸鱼科技有限公司"]},
 
     # -- 1h. New merges (v6) --
+    {"keep": "锦秋基金", "remove": ["锦秋"], "add_aliases": ["锦秋"]},
+
+    # -- 1i. New merges (v7: articles 073-077) --
     {"keep": "蚂蚁集团", "remove": ["蚂蚁"], "add_aliases": ["蚂蚁", "蚂蚁金服"]},
     {"keep": "蚂蚁集团", "remove": ["蚂蚁集团投资部"], "add_aliases": ["蚂蚁集团投资部"]},
     {"keep": "vivix", "remove": ["vivix-ai"], "add_aliases": ["Vivix AI"]},
@@ -98,6 +101,16 @@ TYPE_CORRECTIONS = {
     "红杉资本": "vc_firm",
     "金沙江": "vc_firm",
     "benchmark": "vc_firm",
+    "远识资本": "vc_firm",
+    # v7: new articles 073-077
+    "真格": "vc_firm",
+    "yc": "vc_firm",
+    # v8: articles 078-093 review
+    "somnia-lab": "company",
+    "自变量": "company",
+    "m5stack": "company",
+    "monolith": "company",
+    "tripo": "company",
 }
 
 # ── Edge type fixes ──
@@ -151,6 +164,9 @@ EDGE_TYPE_FIXES = [
     ("kimi", "kimi-claw", "develops", {"new_source": "月之暗面"}),
     ("kimi", "kimi-code", "develops", {"new_source": "月之暗面"}),
     ("faceu", "剪映", "develops", {"new_source": "字节跳动"}),
+
+    # -- 4.6a Edge fixes from v7 (articles 073-077) --
+    ("flova", "tapnow", "related", {"new_type": "compares_to"}),
 
     # -- 4.6 Other edge fixes --
     ("王登科", "独响", "develops", {"new_type": "founder_of"}),
@@ -291,6 +307,12 @@ MISSING_EDGES = [
     ("deepseek", "deepseek-r1", "develops", "DeepSeek开发DeepSeek-R1"),
     ("deepseek", "deepseek-v3", "develops", "DeepSeek开发DeepSeek-V3"),
     ("商汤科技", "sensetime-日日新", "develops", "商汤科技开发日日新大模型"),
+
+    # -- 5.11 Systematic review: articles 078-093 --
+    ("m5stack", "小智ai", "integrates_with", "M5Stack桌面机器人版本内置小智AI"),
+    ("monolith", "tripo", "partners_with", "Monolith与Tripo共同赞助第一届网吧黑客松"),
+    ("7verse", "科比", "related", "7verse使用科比社交内容生成互动数字人"),
+    ("vivix", "科比", "related", "Vivix通过7verse探索科比互动数字人"),
 ]
 
 # ── Alias cleanup ──

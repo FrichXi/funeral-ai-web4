@@ -46,6 +46,27 @@ export default function ArticleDetailPage({ params }: { params: { id: string } }
 
   return (
     <article>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: article.title,
+            datePublished: article.date,
+            author: { '@type': 'Person', name: article.author },
+            publisher: {
+              '@type': 'Organization',
+              name: '葬AI',
+              logo: { '@type': 'ImageObject', url: 'https://funeralai.cc/logo.png' },
+            },
+            description: article.excerpt ? article.excerpt.slice(0, 160) : article.title,
+            mainEntityOfPage: `https://funeralai.cc/articles/${params.id}/`,
+            image: 'https://funeralai.cc/og-image.png',
+            inLanguage: 'zh-CN',
+          }),
+        }}
+      />
       {/* Back link */}
       <div className="mb-6">
         <Link

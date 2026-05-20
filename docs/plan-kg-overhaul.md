@@ -135,7 +135,7 @@ GRAPH_SCHEMA_VERSION = "2026-03-15-vc-firm-v3"
 ## Phase 3: 全量重跑提取
 
 ```bash
-cd /Users/xixiangyu/Documents/葬AI模拟器
+cd <path-to-zangai-simulator>
 python scripts/run_full_extraction.py --force
 ```
 
@@ -157,7 +157,7 @@ python scripts/run_full_extraction.py --force
 
 ### 4.1 创建 `scripts/overrides.py`（声明式修正数据）
 
-**文件位置**: `/Users/xixiangyu/Documents/葬AI模拟器/scripts/overrides.py`
+**文件位置**: `<path-to-zangai-simulator>/scripts/overrides.py`
 
 所有手动修正集中在一个文件里，按类别组织：
 
@@ -365,10 +365,10 @@ export const FCOSE_LAYOUT_OPTIONS = {
 
 ```bash
 # 从模拟器复制到 Web4
-cp -r 葬AI模拟器/scripts/ 葬AI\ Web4/scripts/
-cp -r 葬AI模拟器/articles/ 葬AI\ Web4/articles/
-cp -r 葬AI模拟器/data/ 葬AI\ Web4/data/
-cp 葬AI模拟器/requirements.txt 葬AI\ Web4/requirements.txt
+cp -r <simulator-repo>/scripts/ ./scripts/
+cp -r <simulator-repo>/articles/ ./articles/
+cp -r <simulator-repo>/data/ ./data/
+cp <simulator-repo>/requirements.txt ./requirements.txt
 ```
 
 ### 6.2 .gitignore 规划

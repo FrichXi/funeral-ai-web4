@@ -1,4 +1,9 @@
-import type { RelationType, NodeType } from './types';
+import type {
+  RelationType,
+  NodeType,
+  SponsorLeaderboardEntry,
+  SponsorRecord,
+} from './types';
 
 // ── Brand colors ──
 export const BRAND = {
@@ -106,6 +111,221 @@ export const LEADERBOARD_SEGMENTS = [
 ];
 
 // ── Sponsor data (hardcoded) ──
-export const SPONSORS_DATA = [
-  { rank: 1, name: 'Justin', title: '葬爱Web4唯一指定金主', karma: '+200' },
+export const SPONSOR_RECORDS: SponsorRecord[] = [
+  {
+    id: 'justin-hds',
+    name: 'Justin&韩德胜',
+    amount: 400,
+    sortOrder: 1,
+    lockedTitle: '葬爱Web4唯一指定金主',
+    trailingLabel: '老资历',
+    trailingLabelVariant: 'badge',
+    legacyVariant: 'primary',
+  },
+  {
+    id: 'doge',
+    name: 'Doge',
+    amount: 200,
+    sortOrder: 2,
+    lockedTitle: '葬爱Web4唯二指定金主',
+    trailingLabel: '老资历',
+    trailingLabelVariant: 'badge',
+    legacyVariant: 'secondary',
+  },
+  {
+    id: 'guancha',
+    name: '观猹',
+    amount: 1588,
+    sortOrder: 3,
+    trailingLabel: 'watcha.cn',
+    trailingLabelVariant: 'plain',
+  },
+  {
+    id: 'guixingren',
+    name: '硅星人',
+    amount: 1066,
+    sortOrder: 4,
+  },
+  {
+    id: 'yizhiyanhua-community',
+    name: '一支烟花社区&阿里千问',
+    amount: 888,
+    sortOrder: 5,
+  },
+  {
+    id: 'citron',
+    name: 'Citron',
+    amount: 600,
+    sortOrder: 6,
+  },
+  {
+    id: 'erinyu',
+    name: 'Erinyu',
+    amount: 200,
+    sortOrder: 7,
+  },
+  {
+    id: 'huangjie-media',
+    name: '黄姐传媒',
+    amount: 1038,
+    sortOrder: 8,
+  },
+  {
+    id: 'shuichan-market',
+    name: '水产市场',
+    amount: 100,
+    sortOrder: 9,
+  },
+  {
+    id: 'berton-ai',
+    name: 'Berton AI',
+    amount: 1040,
+    sortOrder: 10,
+    trailingLabel: '微信sonnenblu',
+    trailingLabelVariant: 'plain',
+  },
+  {
+    id: 'stain',
+    name: 'stain',
+    amount: 800,
+    sortOrder: 11,
+  },
+  {
+    id: 'xiaodengqun',
+    name: '小登群',
+    amount: 0.01,
+    sortOrder: 12,
+  },
 ];
+
+export function getSponsorTitle(record: SponsorRecord, rank?: number): string {
+  if (record.lockedTitle) {
+    return record.lockedTitle;
+  }
+
+  if (rank === 1) {
+    return '葬爱Web4万古至尊金主';
+  }
+
+  if (record.amount >= 1000) {
+    return '葬爱Web4至高无上功德主';
+  }
+
+  if (record.amount >= 600) {
+    return '葬爱Web4无上功德主';
+  }
+
+  if (record.amount >= 500) {
+    return '葬爱Web4大功德主';
+  }
+
+  if (record.amount >= 200) {
+    return '葬爱Web4护法金主';
+  }
+
+  return '葬爱Web4随喜功德主';
+}
+
+function resolveSponsorVisual(
+  record: SponsorRecord,
+  rank: number
+): Pick<SponsorLeaderboardEntry, 'iconVariant' | 'themeVariant' | 'trailingLabel' | 'trailingLabelVariant' | 'isLegacyPatron'> {
+  const title = getSponsorTitle(record, rank);
+  const trailing = {
+    trailingLabel: record.trailingLabel,
+    trailingLabelVariant: record.trailingLabelVariant,
+  };
+
+  if (record.legacyVariant === 'primary') {
+    return {
+      iconVariant: 'legacy-primary',
+      themeVariant: 'legacy-primary',
+      ...trailing,
+      isLegacyPatron: true,
+    };
+  }
+
+  if (record.legacyVariant === 'secondary') {
+    return {
+      iconVariant: 'legacy-secondary',
+      themeVariant: 'legacy-secondary',
+      ...trailing,
+      isLegacyPatron: true,
+    };
+  }
+
+  if (rank === 1) {
+    return {
+      iconVariant: 'supreme-crown',
+      themeVariant: 'supreme-gold',
+      ...trailing,
+      isLegacyPatron: false,
+    };
+  }
+
+  if (title === '葬爱Web4至高无上功德主') {
+    return {
+      iconVariant: 'gem',
+      themeVariant: 'top-gold',
+      ...trailing,
+      isLegacyPatron: record.trailingLabelVariant === 'badge',
+    };
+  }
+
+  if (title === '葬爱Web4无上功德主') {
+    return {
+      iconVariant: 'triple-crown',
+      themeVariant: 'high-gold',
+      ...trailing,
+      isLegacyPatron: false,
+    };
+  }
+
+  if (title === '葬爱Web4大功德主') {
+    return {
+      iconVariant: 'double-crown',
+      themeVariant: 'guardian',
+      ...trailing,
+      isLegacyPatron: false,
+    };
+  }
+
+  if (title === '葬爱Web4护法金主') {
+    return {
+      iconVariant: 'single-crown',
+      themeVariant: 'guardian',
+      ...trailing,
+      isLegacyPatron: false,
+    };
+  }
+
+  return {
+    iconVariant: 'single-crown',
+    themeVariant: 'supporter',
+    ...trailing,
+    isLegacyPatron: false,
+  };
+}
+
+export function buildSponsorLeaderboard(
+  records: SponsorRecord[]
+): SponsorLeaderboardEntry[] {
+  return [...records]
+    .sort((a, b) => b.amount - a.amount || a.sortOrder - b.sortOrder)
+    .map((record, index) => {
+      const rank = index + 1;
+      const visual = resolveSponsorVisual(record, rank);
+
+      return {
+        id: record.id,
+        rank,
+        name: record.name,
+        title: getSponsorTitle(record, rank),
+        karma: `+${record.amount}`,
+        amount: record.amount,
+        ...visual,
+      };
+    });
+}
+
+export const SPONSORS_DATA = buildSponsorLeaderboard(SPONSOR_RECORDS);

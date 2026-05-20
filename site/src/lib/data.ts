@@ -34,6 +34,7 @@ export function getLeaderboardData(): LeaderboardData {
 export function getSiteStats() {
   const index = getArticleIndex();
   const graph = getGraphData();
+  const lastArticle = index.articles[index.articles.length - 1];
   return {
     articleCount: index.count,
     nodeCount: graph.nodes.length,
@@ -41,5 +42,8 @@ export function getSiteStats() {
     companyCount: graph.nodes.filter(n => n.type === 'company').length,
     productCount: graph.nodes.filter(n => n.type === 'product').length,
     personCount: graph.nodes.filter(n => n.type === 'person').length,
+    lastArticleId: lastArticle.id,
+    lastArticleTitle: lastArticle.title,
+    lastArticleDate: lastArticle.date,
   };
 }

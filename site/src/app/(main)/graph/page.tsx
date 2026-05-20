@@ -12,13 +12,30 @@ export default function GraphPage() {
   const stats = getSiteStats();
 
   return (
-    <GraphClient
-      leaderboard={leaderboard}
-      stats={{
-        articleCount: stats.articleCount,
-        nodeCount: stats.nodeCount,
-        linkCount: stats.linkCount,
-      }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Dataset',
+            name: '中文AI行业知识图谱',
+            description: `基于${stats.articleCount}篇文章，${stats.nodeCount}个实体，${stats.linkCount}条关系的中文AI行业知识图谱。`,
+            url: 'https://funeralai.cc/graph/',
+            creator: { '@type': 'Organization', name: '葬AI' },
+            inLanguage: 'zh-CN',
+            keywords: ['AI', '知识图谱', '中文AI行业', '关系网络'],
+          }),
+        }}
+      />
+      <GraphClient
+        leaderboard={leaderboard}
+        stats={{
+          articleCount: stats.articleCount,
+          nodeCount: stats.nodeCount,
+          linkCount: stats.linkCount,
+        }}
+      />
+    </>
   );
 }

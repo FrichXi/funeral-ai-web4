@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { CenteredScreen } from '@/components/layout/StatusScreen';
+import { getSiteStats } from '@/lib/data';
 
 export default function LandingPage() {
+  const stats = getSiteStats();
+  const formattedDate = stats.lastArticleDate.replace(/-/g, '.');
+
   return (
     <CenteredScreen>
       {/* Logo */}
@@ -21,7 +25,7 @@ export default function LandingPage() {
 
       {/* Subtitle */}
       <p className="mt-3 text-xs text-muted-foreground">
-        数据截至第069篇「一个山东套壳AI如何上桌」(2026.03.13)
+        数据截至第{stats.lastArticleId}篇「{stats.lastArticleTitle}」({formattedDate})
       </p>
 
       {/* Entry buttons */}

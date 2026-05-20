@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import sys
 from collections import Counter, defaultdict
+from datetime import date, datetime
 from pathlib import Path
 
 # Allow importing sibling modules when run as script
@@ -699,36 +701,61 @@ def step7_recalculate(data: dict) -> None:
         n["source_article_count"] = n["article_count"]
         n["references"] = n["article_count"]
 
-    # 3. composite_weight
-    #    Three independent dimensions:
-    #      CW = 0.40 * norm_degree + 0.40 * norm_mentions + 0.20 * norm_articles
-    #    effective_mc = min(mention_count, 25 * article_count) caps per-article mentions.
+    # 3. composite_weight (with time decay)
+    #    CW = 0.50 * norm_degree
+    #       + 0.35 * norm_time_weighted_mc
+    #       + 0.15 * norm_time_weighted_ac
+    #
+    #    Time decay: decay(article) = 2^(-age_days / 180)
+    #    time_weighted_mc = Σ min(mc_per_article, 25) × decay
+    #    time_weighted_ac = Σ decay
+    #    Degree is structural and does NOT decay.
+
+    HALF_LIFE = 180  # days
+    today = date.today()
+
+    def _decay(article_date_str: str) -> float:
+        try:
+            d = datetime.strptime(article_date_str, "%Y-%m-%d").date()
+            age = (today - d).days
+            return 2 ** (-age / HALF_LIFE)
+        except (ValueError, TypeError):
+            return 0.2  # fallback for missing/bad dates
 
     max_degree = max(
         (n.get("degree", 0) for n in data["nodes"]), default=1
     ) or 1
-    max_article = max(
-        (n.get("article_count", 0) for n in data["nodes"]), default=1
-    ) or 1
 
-    # Cap effective mentions at 25 per article to suppress interview outliers
-    effective_mentions = []
+    # Compute time-weighted mentions and article counts
+    tw_mentions = []
+    tw_articles = []
     for n in data["nodes"]:
-        mc = n.get("mention_count", 0)
-        ac = max(n.get("article_count", 0), 1)
-        effective_mentions.append(min(mc, 25 * ac))
-    max_effective_mc = max(effective_mentions) if effective_mentions else 1
-    max_effective_mc = max_effective_mc or 1
+        tw_mc = 0.0
+        tw_ac = 0.0
+        for sa in n.get("source_articles", []):
+            mc_raw = sa.get("mention_count", 1) if isinstance(sa, dict) else 1
+            mc_capped = min(mc_raw, 25)
+            d_str = sa.get("date", "") if isinstance(sa, dict) else ""
+            df = _decay(d_str)
+            tw_mc += mc_capped * df
+            tw_ac += df
+        tw_mentions.append(tw_mc)
+        tw_articles.append(tw_ac)
+
+    max_tw_mc = max(tw_mentions) if tw_mentions else 1
+    max_tw_mc = max_tw_mc or 1
+    max_tw_ac = max(tw_articles) if tw_articles else 1
+    max_tw_ac = max_tw_ac or 1
 
     for i, n in enumerate(data["nodes"]):
         nd = n.get("degree", 0) / max_degree
-        nm = effective_mentions[i] / max_effective_mc
-        na = n.get("article_count", 0) / max_article
-        cw = 0.40 * nd + 0.40 * nm + 0.20 * na
+        nm = tw_mentions[i] / max_tw_mc
+        na = tw_articles[i] / max_tw_ac
+        cw = 0.50 * nd + 0.35 * nm + 0.15 * na
         n["composite_weight"] = round(cw, 4)
 
-    print(f"  max_effective_mc={max_effective_mc}, max_degree={max_degree}, "
-          f"max_article={max_article}")
+    print(f"  half_life={HALF_LIFE}d, max_tw_mc={max_tw_mc:.1f}, "
+          f"max_tw_ac={max_tw_ac:.1f}, max_degree={max_degree}")
 
     # Top 10
     top = sorted(data["nodes"],

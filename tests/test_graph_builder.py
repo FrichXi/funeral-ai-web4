@@ -121,7 +121,7 @@ class TestAggregateArticleArtifacts:
 
 
 class TestDeriveCanonicalGraph:
-    def test_removes_orphan_nodes(self):
+    def test_retains_mentioned_orphan_nodes(self):
         full = {
             "nodes": [
                 {"id": "a", "name": "A", "mention_count": 5, "article_count": 2},
@@ -136,9 +136,10 @@ class TestDeriveCanonicalGraph:
         }
         canonical = derive_canonical_graph(full)
         node_ids = {n["id"] for n in canonical["nodes"]}
-        assert "orphan" not in node_ids
+        assert "orphan" in node_ids
         assert "a" in node_ids
         assert "b" in node_ids
+        assert canonical["metadata"]["pruning"]["orphanedNodeCount"] == 1
 
     def test_prunes_weak_related_edges(self):
         full = {

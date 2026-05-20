@@ -91,10 +91,11 @@
       "id": "deepseek",
       "name": "DeepSeek",
       "type": "company",
-      "description": "以更强性能、更低成本和支持本地化部署打破智谱护城河的AI公司",
+      "description": "AI大模型公司，其爆火为Cherry Studio带来大量流量",
       "mention_count": 1,
       "aliases": [
-        "Deepseek"
+        "Deepseek",
+        "Deepseek V4"
       ],
       "tags": []
     },

@@ -6,7 +6,7 @@ Make the website and the open-source knowledge-graph pipeline reproducible, main
 
 ## Decisions
 
-- `/Users/xixiangyu/Documents/咸鱼写作文本/葬AI` is the canonical article source on this machine.
+- A contributor may keep a separate local article source directory and mirror it into `articles/` before running the pipeline.
 - Repository `articles/` remains the committed mirror used by the pipeline, frontend, and GitHub.
 - Generated article payloads and indexes must be rebuilt from source articles plus extraction artifacts on every presentation build.
 - Broken graph references and duplicate article IDs must fail the build instead of silently shipping.

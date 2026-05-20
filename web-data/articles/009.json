@@ -30,7 +30,7 @@
       "id": "智谱ai",
       "name": "智谱AI",
       "type": "company",
-      "description": "中国大模型初创公司，正面临大模型技术落后与商业化转型的两难困境",
+      "description": "国内AI大模型公司，为Cherry Studio提供免费API支持",
       "mention_count": 2,
       "aliases": [
         "智谱"
@@ -69,10 +69,13 @@
       "mention_count": 1,
       "aliases": [
         "CC",
+        "CC SDK",
         "Claude 3.5 Sonnet",
         "Claude Code",
         "Claude code",
-        "cc"
+        "Claude code SDK",
+        "cc",
+        "沐秋"
       ],
       "tags": [
         "大模型"

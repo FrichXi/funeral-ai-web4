@@ -169,6 +169,51 @@ export interface LeaderboardEntry {
   sizeBoost?: number;
 }
 
+export interface SponsorRecord {
+  id: string;
+  name: string;
+  amount: number;
+  sortOrder: number;
+  lockedTitle?: string;
+  trailingLabel?: string;
+  trailingLabelVariant?: SponsorTrailingVariant;
+  legacyVariant?: 'primary' | 'secondary';
+}
+
+export type SponsorTrailingVariant = 'badge' | 'plain';
+
+export type SponsorIconVariant =
+  | 'supreme-crown'
+  | 'gem'
+  | 'triple-crown'
+  | 'legacy-primary'
+  | 'legacy-secondary'
+  | 'double-crown'
+  | 'single-crown';
+
+export type SponsorThemeVariant =
+  | 'supreme-gold'
+  | 'top-gold'
+  | 'high-gold'
+  | 'legacy-primary'
+  | 'legacy-secondary'
+  | 'guardian'
+  | 'supporter';
+
+export interface SponsorLeaderboardEntry {
+  id: string;
+  rank: number;
+  name: string;
+  title: string;
+  karma: string;
+  amount: number;
+  iconVariant: SponsorIconVariant;
+  themeVariant: SponsorThemeVariant;
+  trailingLabel?: string;
+  trailingLabelVariant?: SponsorTrailingVariant;
+  isLegacyPatron: boolean;
+}
+
 // ── Display Registry ──
 
 export interface DisplayRegistry {
