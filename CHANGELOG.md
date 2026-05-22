@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- README: added live site link (funeralai.cc), updated stats to 93 articles / 556 entities / 1396 relationships, fixed git clone URL to `FrichXi/funeral-ai-web4`
+- `llms.txt`: updated entity/relationship counts to match current graph data
+
 ### Added
 - Pre-deploy KG review gate (`scripts/kg_review_gate.py`) and `site` deploy hook. Deployment now rebuilds graph data, checks holistic review coverage, verifies extracted entities survive into frontend payloads, and surfaces relationship candidates before upload.
 - Articles 073-077: "做个人吧，别做AI" (073), "我们决定代表全体人类向龙虾宣战" (074), "葬CLI如闪电般上线" (075), "OpenClaw气功纪录片今日上映" (076), "Flova和TapNow背对背拥抱" (077). Full pipeline: extraction → post-processing → frontend data → deploy.
